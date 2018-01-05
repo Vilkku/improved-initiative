@@ -1,66 +1,73 @@
-module ImprovedInitiative {
-    export class StaticCombatantViewModel {
-        Name: string;
-        HPDisplay: string;
-        HPColor: string;
-        Initiative: number;
-        Id: string;
-        Tags: Tag[];
-        IsPlayerCharacter: boolean;
+import { Tag } from "./Tag";
+import { Combatant } from "./Combatant";
+import { CurrentSettings } from "../Settings/Settings";
 
-        constructor(combatant: Combatant) {
-            this.Name = this.GetName(combatant);
-            this.Id = combatant.Id;
-            this.HPDisplay = this.GetHPDisplay(combatant);
-            this.HPColor = this.GetHPColor(combatant);
-            this.Initiative = combatant.Initiative();
-            this.IsPlayerCharacter = combatant.IsPlayerCharacter;
-            this.Tags = combatant.Tags();
-        }
+export class StaticCombatantViewModel {
+    Name: string;
+    HPDisplay: string;
+    HPColor: string;
+    Initiative: number;
+    Id: string;
+    Tags: Tag[];
+    IsPlayerCharacter: boolean;
 
-        private GetHPDisplay(combatant: Combatant): string {
-            var monsterHpVerbosity = Store.Load(Store.User, "MonsterHPVerbosity");
+    constructor(combatant: Combatant) {
+        this.Name = this.GetName(combatant);
+        this.Id = combatant.Id;
+        this.HPDisplay = this.GetHPDisplay(combatant);
+        this.HPColor = this.GetHPColor(combatant);
+        this.Initiative = combatant.Initiative();
+        this.IsPlayerCharacter = combatant.IsPlayerCharacter;
+        this.Tags = combatant.Tags();
+    }
 
-            if (combatant.IsPlayerCharacter || monsterHpVerbosity == "Actual HP") {
-                if (combatant.TemporaryHP()) {
-                    return '{0}+{1}/{2}'.format(combatant.CurrentHP(), combatant.TemporaryHP(), combatant.MaxHP);
-                } else {
-                    return '{0}/{1}'.format(combatant.CurrentHP(), combatant.MaxHP);
-                }
-            }
+    private GetHPDisplay(combatant: Combatant): string {
+        var monsterHpVerbosity = CurrentSettings().PlayerView.MonsterHPVerbosity;
 
-            if (monsterHpVerbosity == "Hide All") {
-                return '';
-            }
-
-            if (combatant.CurrentHP() <= 0) {
-                return "<span class='defeatedHP'>Defeated</span>";
-            } else if (combatant.CurrentHP() < combatant.MaxHP / 2) {
-                return "<span class='bloodiedHP'>Bloodied</span>";
-            } else if (combatant.CurrentHP() < combatant.MaxHP) {
-                return "<span class='hurtHP'>Hurt</span>";
-            }
-            return "<span class='healthyHP'>Healthy</span>";
-        }
-
-        private GetHPColor = (combatant: Combatant) => {
-            var monsterHpVerbosity = Store.Load(Store.User, "MonsterHPVerbosity");
-            if (!combatant.IsPlayerCharacter &&
-                   (monsterHpVerbosity == "Monochrome Label" ||
-                    monsterHpVerbosity == "Hide All")) {
-                return "auto";
-            }
-            var green = Math.floor((combatant.CurrentHP() / combatant.MaxHP) * 170);
-            var red = Math.floor((combatant.MaxHP - combatant.CurrentHP()) / combatant.MaxHP * 170);
-            return "rgb(" + red + "," + green + ",0)";
-        }
-
-        private GetName = (combatant: Combatant) => {
-            if (combatant.NameHidden()) {
-                return '???';
+        if (combatant.IsPlayerCharacter || monsterHpVerbosity == "Actual HP") {
+            if (combatant.TemporaryHP()) {
+                return `${combatant.CurrentHP()}+${combatant.TemporaryHP()}/${combatant.MaxHP}`;
             } else {
-                return combatant.DisplayName();
+                return `${combatant.CurrentHP()}/${combatant.MaxHP}`;
             }
+        }
+
+        if (monsterHpVerbosity == "Hide All") {
+            return '';
+        }
+
+        if (monsterHpVerbosity == "Damage Taken") {
+            return (combatant.CurrentHP() - combatant.MaxHP).toString();
+        }
+
+        if (combatant.CurrentHP() <= 0) {
+            return "<span class='defeatedHP'>Defeated</span>";
+        } else if (combatant.CurrentHP() < combatant.MaxHP / 2) {
+            return "<span class='bloodiedHP'>Bloodied</span>";
+        } else if (combatant.CurrentHP() < combatant.MaxHP) {
+            return "<span class='hurtHP'>Hurt</span>";
+        }
+        return "<span class='healthyHP'>Healthy</span>";
+    }
+
+    private GetHPColor = (combatant: Combatant) => {
+        var monsterHpVerbosity = CurrentSettings().PlayerView.MonsterHPVerbosity;
+        if (!combatant.IsPlayerCharacter &&
+            (monsterHpVerbosity == "Monochrome Label" ||
+                monsterHpVerbosity == "Hide All" ||
+                monsterHpVerbosity == "Damage Taken")) {
+            return "auto";
+        }
+        var green = Math.floor((combatant.CurrentHP() / combatant.MaxHP) * 170);
+        var red = Math.floor((combatant.MaxHP - combatant.CurrentHP()) / combatant.MaxHP * 170);
+        return "rgb(" + red + "," + green + ",0)";
+    }
+
+    private GetName = (combatant: Combatant) => {
+        if (combatant.NameHidden()) {
+            return '???';
+        } else {
+            return combatant.DisplayName();
         }
     }
 }

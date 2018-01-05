@@ -1,5 +1,5 @@
-@import url("http://fonts.googleapis.com/css?family=Josefin+Sans&subset=latin");
-@import url("http://fonts.googleapis.com/css?family=Josefin+Slab&subset=latin");
+@import url("//fonts.googleapis.com/css?family=Josefin+Sans&subset=latin");
+@import url("//fonts.googleapis.com/css?family=Josefin+Slab&subset=latin");
 
 @import "colors.less";
 @import (reference) "node_modules/font-awesome/less/variables.less";
@@ -15,9 +15,11 @@
 @medium-spacer: 5px;
 @large-spacer: 15px;
 
-@button-width: 42px;
+@button-size: 42px;
 @button-inner: 18px;
+@button-padding: 10px;
 @border-radius: 5px;
+@prompt-minimum-height: 42px;
 
 @fixed-column-width: 350px;
 
@@ -29,7 +31,8 @@
     font-family: 'Josefin Sans', sans-serif;
     position:relative;
     margin: 0;
-	padding: 0;
+    padding: 0;
+    flex-shrink: 0;
 }
 
 html, body {
@@ -44,7 +47,11 @@ html, body {
 div {
     display:flex;
     flex-direction:column;
+    max-height: 100%;
+
     & > * {
+        min-width: 0;
+        min-height: 0;
         max-height: 100%;
         max-width: 100%;
     }
@@ -109,8 +116,9 @@ input[type="file"] {
 .button() {
     cursor: pointer;
     display: inline-block;
-    padding: 10px;
-    text-align:center;
+    padding: @button-padding;
+    text-align: center;
+    text-decoration: none;
     
 	border-radius: @border-radius;
     border: 0;
@@ -156,21 +164,31 @@ input[type="file"] {
     border-style: solid;
     border-radius: @border-radius;
     padding: @medium-spacer;
-    z-index: 2;
+    z-index: 3;
+    flex-shrink: 1;
 }
 
 .preview.statblock {
     .overlay-dialog();
-    z-index: 3;
+    z-index: 4;
     max-height: 90%;
 }
 
+.selected-combatant, .libraries {
+    .close {
+        position: absolute;
+        right: 0;
+        top: 0;
+    }
+}
+
 .tutorial-focus {
-    z-index: 2;
+    z-index: 3;
 }
 
 .tutorial {
     .overlay-dialog();
+    z-index: 4;
     width: 450px;
     font-size: 150%;
 
@@ -181,10 +199,21 @@ input[type="file"] {
     .hop();
 }
 
+body>.login.button {
+    display: block;
+    position: fixed;
+    bottom: 0px;
+    right: @large-spacer;
+    z-index: 1;
+
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+}
+
 .settings {
     .overlay-dialog();
     .absolute-center();
-    width: 500px;
+    max-width: 500px;
     max-height: 700px;
 }
 
@@ -201,7 +230,7 @@ input[type="file"] {
 
 .modal-blur {
     position: fixed;
-    z-index: 1;
+    z-index: 2;
     left: 0;
     top: 0;
     width: 100%;
@@ -247,9 +276,11 @@ input[type="file"] {
 
         p, li, div {
             font-size: 16pt;
+            margin: @small-spacer;
         }
 
         flex-grow: 1;
+        flex-shrink: 1;
         align-items: center;
         
         padding:@large-spacer;
@@ -261,7 +292,8 @@ input[type="file"] {
             flex-direction: row;
         }
         .button, input {
-            flex-grow:1;
+            flex-grow: 1;
+            flex-shrink: 1;
             margin: @medium-spacer;
         }
     }
@@ -270,6 +302,7 @@ input[type="file"] {
     }
     .footer-spacer {
         flex-grow: 1;
+        flex-shrink: 1;
     }
     .footer {
         .recessed();
@@ -302,6 +335,8 @@ input[type="file"] {
     
     .center-column {
         flex-grow:1;
+        flex-shrink:1;
+        margin: @small-spacer;
         background-image: url('../img/improved-initiative-transparent-darkgreen.png');
         background-position: center bottom 20px;
         background-repeat: no-repeat;
@@ -310,17 +345,14 @@ input[type="file"] {
     .left-column, .right-column, .preview.statblock {
         .recessed();
 
+        max-width: @fixed-column-width;
         width: @fixed-column-width;
-        flex-shrink: 0;
     }
 }
 
 .libraries {
-    >*:not(.library) {
-        flex-shrink: 0;
-    }
-
     input {
+        min-height: 20px;
         cursor: text;
     }
 
@@ -328,20 +360,29 @@ input[type="file"] {
         border-radius: @border-radius;
         padding: @small-spacer;
         margin: 1px;
+        overflow-x: hidden;
     }
 
-    ul {
-        overflow-y: auto;
+    .library {
+        flex-grow: 1;
         flex-shrink: 1;
+        ul {
+            overflow-y: auto;
+            flex-grow: 1;
+            flex-shrink: 1;
+        }
     }
 
     li {
         list-style-type: none;
         display:flex;
+        overflow-x: hidden;
+
         span {
             .library-button();
             &:first-child {
                 flex-grow: 1;
+                flex-shrink: 1;
             }
         }
     }
@@ -350,7 +391,6 @@ input[type="file"] {
         flex-direction: row;
         justify-content: flex-end;
         align-items: center;
-        flex-shrink: 0;
 
         span {
             .button();
@@ -365,8 +405,7 @@ input[type="file"] {
         padding-top:10px;
         border-top: 1px solid;
     }
-    
-    flex-shrink:0;
+
     padding: @small-spacer;
 
     .button {
@@ -377,14 +416,13 @@ input[type="file"] {
 .toolbar-narrow {
     .scrollframe {
         max-width: none;
-        width: @button-width + @scrollbar-width;
+        width: @button-size;
         overflow-x: hidden;
         overflow-y: scroll;
     }
 
-    width: @button-width;
+    width: @button-size;
     overflow: hidden;
-    flex-shrink: 0;
 
     .command-name {
         display: none;
@@ -407,16 +445,17 @@ input[type="file"] {
 
 .statblock-editor, .spell-editor {
     flex-grow: 1;
+    flex-shrink: 1;
 
     textarea {
         flex-grow: 1;
+        flex-shrink: 1;
         height: 50px;
     }
 
     input, textarea, p {
         font-size: medium;
         line-height: 1.4em;
-        margin-left: @medium-spacer;
     }
 
     .editor-type, .edit-mode {
@@ -434,7 +473,6 @@ input[type="file"] {
     
     .buttons {
         flex-direction: row;
-        flex-shrink:0;
         justify-content: flex-end;
         .button {
             margin: 1px;
@@ -446,6 +484,7 @@ input[type="file"] {
     .stats {
         display: block;
         overflow-y: auto;
+        flex-shrink: 1;
     }
 
     .stats > div {
@@ -463,20 +502,20 @@ input[type="file"] {
             align-items: flex-start;
         }
         input[type="text"] {
-            width: 200px;
+            max-width: 200px;
             height: 50px;
         }
     }
 
     input {
         &[type="text"] {
-            width: 100px;
+            max-width: 100px;
         }
         &[type="number"] {
-            width: 40px;
+            max-width: 40px;
         }
         &.name, &.type, &.source {
-            width:200px;
+            max-width:200px;
         }
     }
 }
@@ -487,6 +526,7 @@ input[type="file"] {
         border-style: solid;
         padding: @medium-spacer;
         overflow-y: auto;
+        flex-shrink: 1;
         p {
             margin-bottom: @medium-spacer;
         }
@@ -505,6 +545,9 @@ input[type="file"] {
         align-items: center;
         span {
             padding: @medium-spacer;
+        }
+        .tip {
+            flex-shrink: 1;
         }
     }
     .whatsnew a {
@@ -536,7 +579,6 @@ input[type="file"] {
 
     .keybindings >div {
         flex-direction: row;
-        flex-shrink: 0;
         align-items: center;
         
         >span, >label {
@@ -595,7 +637,10 @@ input[type="file"] {
     display:block;
     padding:@small-spacer;
     line-height: 1.4em;
+
+    flex-shrink: 1;
     overflow-y:auto;
+
     h3, h4 {
         margin-top: @medium-spacer;
     }
@@ -605,6 +650,7 @@ input[type="file"] {
     >div {
         flex-direction:row;
         flex-wrap: wrap;
+        max-height: none;
         span {
             padding-right: @small-spacer;
         }
@@ -657,7 +703,6 @@ input[type="file"] {
     padding: @medium-spacer;
     margin: @medium-spacer 0;
     border-radius: @medium-spacer;
-
     flex-shrink: 1;
 
     .difficulty::after {
@@ -665,15 +710,14 @@ input[type="file"] {
     }
 
     .event-log {
+        flex-shrink: 1;
         display: flex;
         flex-direction: column;
-        flex-grow: 1;
         overflow-y: auto;
         min-height: @large-spacer;
     }
 
     .footer-bar {
-        flex-shrink:0;
         flex-direction: row;
         justify-content: flex-end;
 
@@ -683,14 +727,15 @@ input[type="file"] {
     }
 
     .latest-event {
-        flex-grow:1;
+        flex-grow: 1;
+        flex-shrink: 1;
     }
 
 }
 
 .combatants {
-    flex-shrink: 0;
     overflow-y: auto;
+    flex-shrink: 1;
 }
 
 @keyframes slide-from-left {
@@ -745,6 +790,7 @@ input[type="file"] {
 
     .tags {
         flex-grow:1;
+        flex-shrink: 1;
     }
 
     .buttons {
@@ -759,28 +805,26 @@ input[type="file"] {
 
 .prompts {
     flex-grow: 1;
+    flex-shrink: 1;
+    align-items: flex-end;
     overflow-y: auto;
+    &:not(.empty){
+        min-height: @prompt-minimum-height + (@medium-spacer * 4);
+    }
 }
 
 .prompt {
     .recessed();
     display: flex;
-    flex-shrink: 0;
+
     align-items: center;
     justify-content: space-between;
 
-    div {
-        display: flex;
-        flex-flow: row;
-    }
+    min-height: @prompt-minimum-height;
 
-    li {
-        text-align: right;
-        list-style: none;
-    }
-    ul {
-        max-height: 120px;
-        overflow-y: auto;
+    div.default-query {
+        flex-direction: row;
+        flex-shrink: 1;
     }
 
     .add-tag {
@@ -794,25 +838,49 @@ input[type="file"] {
             }
         }
     }
-}
 
-.prompt .spell {
-    flex-flow: column;
-    align-self: stretch;
-    label {
-        font-weight: bold;
-        padding-right: @medium-spacer;
+    .spell {
+        flex-shrink: 1;
+        flex-flow: column;
+        align-self: stretch;
+        label {
+            font-weight: bold;
+            padding-right: @medium-spacer;
+        }
+        .spell-type {
+            font-style: italic;
+        }
+        .spell-source {
+            font-style: italic;
+            font-size: small;
+        }
+        p {
+            padding: @small-spacer;
+            white-space: pre-wrap;
+        }
     }
-    .spell-type {
-        font-style: italic;
+
+    .roll-initiative {
+        flex-direction: row;
+        flex-wrap: wrap;
+        flex-shrink: 1;
+        align-items: center;
+        ul {
+            text-align: right;
+            list-style-type: none;
+            padding: @medium-spacer;
+        }
     }
-    .spell-source {
-        font-style: italic;
-        font-size: small;
+
+    .check-concentration {
+        flex-shrink: 1;
     }
-    p {
-        padding-top: @small-spacer;
-        white-space: pre-wrap;
+
+    .accept-damage-options, .check-concentration-options {
+        flex-direction: row;
+        button {
+            margin: @small-spacer;
+        }
     }
 }
 
@@ -827,7 +895,6 @@ input[type="file"] {
 
     .header {
         flex-direction: row;
-        flex-shrink: 0;
     }
 
     .initiative {
@@ -852,8 +919,4 @@ input[type="file"] {
     }
 }
 
-@media (max-width: 800px), (max-height: 560px) {
-    .logo {
-        display: none;
-    }
-}
+@import "responsive.less";
