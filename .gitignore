@@ -12,3 +12,4 @@ public/fonts/*
 !Gruntfile.js
 !webpack.*.js
 !test/test.js
+.idea
