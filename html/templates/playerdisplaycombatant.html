@@ -1,10 +1,10 @@
-<div data-bind="css: { 'disable-hover': !$root.AllowSuggestions() }">
+<div data-bind="css: { 'disable-hover': !$root.allowSuggestions() }">
     <div data-bind="click: $root.ShowInitiativeSuggestion, text: Initiative" class="initiative"></div>
 </div>
 <div class="name">
     <span data-bind="text: Name, attr: {title: Name }"></span>
 </div>
-<div class="hp" data-bind="css: { 'disable-hover': !$root.AllowSuggestions() }">
+<div class="hp" data-bind="css: { 'disable-hover': !$root.allowSuggestions() }">
     <span data-bind="click: $root.ShowSuggestion, html: HPDisplay, style: { color: HPColor }" class="current-hp"></span>
 </div>
 <div class="tags" data-bind="foreach: Tags">
