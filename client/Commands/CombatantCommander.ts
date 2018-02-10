@@ -6,6 +6,7 @@ import { Store } from "../Utility/Store";
 import { StatBlock } from "../StatBlock/StatBlock";
 import { CurrentSettings } from "../Settings/Settings";
 import { AcceptDamagePrompt } from "./Prompts/AcceptDamagePrompt";
+import { AcceptInitiativePrompt } from "./Prompts/AcceptInitiativePrompt";
 import { Combatant } from "../Combatant/Combatant";
 import { ConcentrationPrompt } from "./Prompts/ConcentrationPrompt";
 import { probablyUniqueString } from "../Utility/Toolbox";
@@ -161,6 +162,19 @@ export class CombatantCommander {
         }
 
         const prompt = new AcceptDamagePrompt(suggestedCombatants, suggestedDamage, suggester, this.tracker);
+
+        this.tracker.PromptQueue.Add(prompt);
+        return false;
+    }
+
+    SuggestEditInitiative = (suggestedCombatants: CombatantViewModel[], suggestedInitiative: number, suggester: string) => {
+        const allowPlayerSuggestions = CurrentSettings().PlayerView.AllowPlayerSuggestions;
+
+        if (!allowPlayerSuggestions) {
+            return false;
+        }
+
+        const prompt = new AcceptInitiativePrompt(suggestedCombatants, suggestedInitiative, suggester, this.tracker);
 
         this.tracker.PromptQueue.Add(prompt);
         return false;

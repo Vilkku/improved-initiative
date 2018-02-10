@@ -26,6 +26,18 @@
         }">
     </div>
     <!-- /ko -->
+    <!-- ko with: InitiativeSuggestor -->
+    <div class="modal-blur" data-bind="visible: SuggestionVisible, click: Close"></div>
+    <div class="damage-suggestion" data-bind="
+        visible: SuggestionVisible,
+        component: {
+            name: 'playerinitiativesuggestion',
+            params: {
+                suggestion: $data
+            }
+        }">
+    </div>
+    <!-- /ko -->
     <div class="combatant header">
         <div class="initiative"><span class="fa fa-forward"></span></div>
         <div class="name">Combatant</div>

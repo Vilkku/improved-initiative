@@ -2,6 +2,7 @@ import { StaticCombatantViewModel } from "./Combatant/StaticCombatantViewModel";
 import { env } from "./Environment";
 import { TurnTimer } from "./Widgets/TurnTimer";
 import { CombatantSuggestor } from "./Player/CombatantSuggestor";
+import { InitiativeSuggestor } from "./Player/InitiativeSuggestor";
 import { SavedEncounter } from "./Encounter/SavedEncounter";
 
 export class PlayerViewModel {
@@ -16,6 +17,7 @@ export class PlayerViewModel {
     Socket: SocketIOClient.Socket = io();
 
     CombatantSuggestor = new CombatantSuggestor(this.Socket, this.EncounterId);
+    InitiativeSuggestor = new InitiativeSuggestor(this.Socket, this.EncounterId);
 
     constructor() {
         this.Socket.on('update encounter', (encounter) => {
@@ -56,5 +58,12 @@ export class PlayerViewModel {
             return;
         }
         this.CombatantSuggestor.Show(combatant);
+    }
+
+    ShowInitiativeSuggestion = (combatant: StaticCombatantViewModel) => {
+        if (!this.AllowSuggestions()) {
+            return;
+        }
+        this.InitiativeSuggestor.Show(combatant);
     }
 }

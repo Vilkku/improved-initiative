@@ -22,6 +22,13 @@ export default function(io: SocketIO.Server, playerViews) {
             socket.broadcast.to(encounterId).emit("suggest damage", suggestedCombatantIds, suggestedDamage, suggester);
         });
 
+        socket.on("suggest initiative", function (id, suggestedCombatantIds: string[], suggestedInitiative: number, suggester: string) {
+            if (id !== encounterId) {
+                return;
+            }
+            socket.broadcast.to(encounterId).emit("suggest initiative", suggestedCombatantIds, suggestedInitiative, suggester);
+        });
+
         socket.on("disconnect", function () {
             io.in(encounterId).clients((error, clients) => {
                 if (clients.length == 0) {

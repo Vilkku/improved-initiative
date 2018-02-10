@@ -1,4 +1,6 @@
-<div data-bind="text: Initiative" class="initiative"></div>
+<div data-bind="css: { 'disable-hover': !$root.AllowSuggestions() }">
+    <div data-bind="click: $root.ShowInitiativeSuggestion, text: Initiative" class="initiative"></div>
+</div>
 <div class="name">
     <span data-bind="text: Name, attr: {title: Name }"></span>
 </div>

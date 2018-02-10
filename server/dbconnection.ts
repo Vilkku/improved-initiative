@@ -1,6 +1,6 @@
 import mongo = require("mongodb");
 const client = mongo.MongoClient;
-const connectionString = process.env.DB_CONNECTION_STRING
+const connectionString = process.env.DB_CONNECTION_STRING;
 
 import * as L from "./library";
 import { User } from "./user";

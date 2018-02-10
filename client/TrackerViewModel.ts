@@ -38,6 +38,11 @@ export class TrackerViewModel {
             this.CombatantCommander.SuggestEditHP(suggestedCombatants, suggestedDamage, suggester);
         });
 
+        this.Socket.on("suggest initiative", (suggestedCombatantIds: string[], suggestedInitiative: number, suggester: string) => {
+            const suggestedCombatants = this.CombatantViewModels().filter(c => suggestedCombatantIds.indexOf(c.Combatant.Id) > -1);
+            this.CombatantCommander.SuggestEditInitiative(suggestedCombatants, suggestedInitiative, suggester);
+        });
+
         this.Socket.emit("join encounter", this.Encounter.EncounterId);
 
         this.AccountClient.GetAccount(account => {
