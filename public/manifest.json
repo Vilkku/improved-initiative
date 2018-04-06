@@ -1,0 +1,14 @@
+{
+    "short_name": "Improved Initiative",
+    "name": "Improved Initiative",
+    "icons": [
+        {
+            "src": "img/logo-192.png",
+            "type": "image/png",
+            "sizes": "192x192"
+        }
+    ],
+    "background_color": "#00643c",
+    "display": "standalone",
+    "theme_color": "#00643c"
+}
