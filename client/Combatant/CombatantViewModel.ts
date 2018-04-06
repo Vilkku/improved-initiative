@@ -1,3 +1,4 @@
+import { toModifierString } from "../../common/Toolbox";
 import { CombatantCommander } from "../Commands/CombatantCommander";
 import { ConcentrationPrompt } from "../Commands/Prompts/ConcentrationPrompt";
 import { DefaultPrompt, Prompt } from "../Commands/Prompts/Prompt";
@@ -5,7 +6,6 @@ import { TagPrompt } from "../Commands/Prompts/TagPrompt";
 import { Encounter } from "../Encounter/Encounter";
 import { CurrentSettings } from "../Settings/Settings";
 import { Metrics } from "../Utility/Metrics";
-import { toModifierString } from "../Utility/Toolbox";
 import { Combatant } from "./Combatant";
 import { Tag } from "./Tag";
 
@@ -28,7 +28,6 @@ export class CombatantViewModel {
             }
         });
         this.Name = Combatant.DisplayName;
-
         setTimeout(() => this.IsNew(false), 500);
     }
 
@@ -89,7 +88,7 @@ export class CombatantViewModel {
     public EditInitiative() {
         const currentInitiative = this.Combatant.Initiative();
         const modifier = toModifierString(this.Combatant.InitiativeBonus);
-        let preRoll = this.Combatant.Initiative() || this.Combatant.GetInitiativeRoll();
+        let preRoll = currentInitiative || this.Combatant.GetInitiativeRoll();
         let message = `Set initiative for ${this.Name()} (${modifier}): <input id='initiative' class='response' type='number' value='${preRoll}' />`;
         if (this.Combatant.InitiativeGroup()) {
             message += ` Break Link: <input name='break-link' class='response' type='checkbox' value='break' />`;

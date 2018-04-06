@@ -1,5 +1,5 @@
 import { Listable } from "../../common/Listable";
-import { probablyUniqueString } from "../Utility/Toolbox";
+import { probablyUniqueString } from "../../common/Toolbox";
 
 export interface Spell extends Listable {
     Source: string;
@@ -20,8 +20,9 @@ export class Spell {
     public static Default: () => Spell = () => {
         return {
             Id: probablyUniqueString(),
-            Version: "1.0.0",
+            Version: process.env.VERSION,
             Name: "",
+            Path: "",
             Source: "",
             CastingTime: "",
             Classes: [],

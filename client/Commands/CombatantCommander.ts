@@ -1,10 +1,11 @@
+import { probablyUniqueString } from "../../common/Toolbox";
 import { Combatant } from "../Combatant/Combatant";
 import { CombatantViewModel } from "../Combatant/CombatantViewModel";
+import { Dice, RollResult } from "../Rules/Rules";
 import { CurrentSettings } from "../Settings/Settings";
 import { StatBlock } from "../StatBlock/StatBlock";
 import { TrackerViewModel } from "../TrackerViewModel";
 import { Store } from "../Utility/Store";
-import { probablyUniqueString } from "../Utility/Toolbox";
 import { BuildCombatantCommandList, Command } from "./Command";
 import { AcceptDamagePrompt } from "./Prompts/AcceptDamagePrompt";
 import { AcceptInitiativePrompt } from "./Prompts/AcceptInitiativePrompt";
@@ -54,6 +55,8 @@ export class CombatantCommander {
             .join(", ")
     );
 
+    private latestRoll: RollResult;
+
     public Select = (data: CombatantViewModel, e?: MouseEvent) => {
         if (!data) {
             return;
@@ -93,8 +96,7 @@ export class CombatantCommander {
             }
         }
 
-        this.tracker.CombatantViewModels.removeAll(combatantsToRemove);
-        this.tracker.Encounter.Combatants.removeAll(combatantsToRemove.map(c => c.Combatant));
+        this.tracker.Encounter.RemoveCombatantsByViewModel(combatantsToRemove);
 
         const remainingCombatants = this.tracker.CombatantViewModels();
 
@@ -151,7 +153,8 @@ export class CombatantCommander {
         const selectedCombatants = this.SelectedCombatants();
         const combatantNames = selectedCombatants.map(c => c.Name()).join(", ");
         const callback = this.CreateEditHPCallback(selectedCombatants, combatantNames);
-        const prompt = new DefaultPrompt(`Apply damage to ${combatantNames}: <input id='damage' class='response' type='number' />`, callback);
+        const latestRollTotal = this.latestRoll && this.latestRoll.Total;
+        const prompt = new DefaultPrompt(`Apply damage to ${combatantNames}: <input id='damage' class='response' type='number' value='${latestRollTotal}'/>`, callback);
         this.tracker.PromptQueue.Add(prompt);
         return false;
     }
@@ -275,13 +278,20 @@ export class CombatantCommander {
     public EditStatBlock = () => {
         if (this.SelectedCombatants().length == 1) {
             let selectedCombatant = this.SelectedCombatants()[0];
-            this.tracker.StatBlockEditor.EditStatBlock(null, this.StatBlock(), (_, __, newStatBlock) => {
+            this.tracker.StatBlockEditor.EditStatBlock(null, this.StatBlock(), (newStatBlock) => {
                 selectedCombatant.Combatant.StatBlock(newStatBlock);
                 this.tracker.Encounter.QueueEmitEncounter();
-            }, (_, __) => {
+            }, () => {
                 this.Remove();
             },
                 "instance");
         }
+    }
+
+    public RollDice = (diceExpression: string) => {
+        const diceRoll = Dice.RollDiceExpression(diceExpression);
+        this.latestRoll = diceRoll;
+        const prompt = new DefaultPrompt(`Rolled: ${diceExpression} -> ${diceRoll.FormattedString} <input class='response' type='number' value='${diceRoll.Total}' />`);
+        this.tracker.PromptQueue.Add(prompt);
     }
 }

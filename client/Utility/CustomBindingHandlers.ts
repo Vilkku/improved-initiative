@@ -1,12 +1,12 @@
-import { createElement } from "react";
 import { render as renderReact } from "react-dom";
+import { toModifierString } from "../../common/Toolbox";
+import { CombatantCommander } from "../Commands/CombatantCommander";
 import { EncounterCommander } from "../Commands/EncounterCommander";
 import { SpellLibrary } from "../Library/SpellLibrary";
-import { Dice, IRules } from "../Rules/Rules";
+import { Dice } from "../Rules/Rules";
 import { TrackerViewModel } from "../TrackerViewModel";
 import { ComponentLoader } from "./Components";
 import { TextAssets } from "./TextAssets";
-import { toModifierString } from "./Toolbox";
 
 declare var markdownit: any;
 declare var Awesomplete: any;
@@ -74,10 +74,10 @@ export function RegisterBindingHandlers() {
         }
     };
 
-    function makeDiceClickable(el: JQuery<HTMLElement>, encounterCommander: EncounterCommander) {
+    function makeDiceClickable(el: JQuery<HTMLElement>, combatantCommander: CombatantCommander) {
         el.on("click", (event) => {
             const diceExpression = event.target.innerHTML;
-            encounterCommander.RollDice(diceExpression);
+            combatantCommander.RollDice(diceExpression);
         });
     }
 
@@ -86,7 +86,7 @@ export function RegisterBindingHandlers() {
             const abilityScore = valueAccessor();
             if (abilityScore !== undefined && bindingContext.$root.Encounter !== undefined) {
                 const modifier = toModifierString(bindingContext.$root.Encounter.Rules.GetModifierFromScore(abilityScore));
-                const encounterCommander: EncounterCommander = bindingContext.$root.EncounterCommander;
+                const encounterCommander: CombatantCommander = bindingContext.$root.CombatantCommander;
 
                 $(element).html(modifier).addClass("rollable");
                 makeDiceClickable($(element), encounterCommander);
@@ -100,8 +100,8 @@ export function RegisterBindingHandlers() {
 
         let text = markdownit().renderInline(originalText);
 
-        const rules: IRules = bindingContext.$root.Encounter.Rules;
         const encounterCommander: EncounterCommander = bindingContext.$root.EncounterCommander;
+        const combatantCommander: CombatantCommander = bindingContext.$root.CombatantCommander;
         const spellLibrary: SpellLibrary = bindingContext.$root.Libraries.Spells;
 
         text = text.replace(Dice.GlobalDicePattern, match => `<span class='rollable'>${match}</span>`);
@@ -112,7 +112,7 @@ export function RegisterBindingHandlers() {
 
         $(element).html(text);
 
-        makeDiceClickable($(element).find(".rollable"), encounterCommander);
+        makeDiceClickable($(element).find(".rollable"), combatantCommander);
 
         $(element).find(".spell-reference").on("click", (event) => {
             const spellName = event.target.innerHTML.toLocaleLowerCase();

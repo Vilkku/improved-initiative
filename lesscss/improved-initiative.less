@@ -174,6 +174,15 @@ input[type="file"] {
     max-height: 90%;
 }
 
+.c-overlay {
+    position: fixed;
+    border-width: 2px;
+    border-style: solid;
+    border-radius: @border-radius;
+    flex-shrink: 1;
+    z-index: 4;
+}
+
 .selected-combatant, .libraries {
     .fa-close {
         position: absolute;
@@ -396,6 +405,32 @@ body>.login.button {
             .button();
             margin: 1px;
         }
+    }
+
+    .c-encounter-preview {
+        margin: @medium-spacer;
+    }
+}
+
+.c-listing {
+    .c-listing-delete, .c-listing-edit, .c-listing-move {
+        display: none;
+    }
+
+    &:hover {
+        .c-listing-delete, .c-listing-edit, .c-listing-move {
+            display: flex;
+        }
+    }
+
+    .fa.c-listing-toggle:before {
+        padding-right: 5px;
+    }
+}
+
+.c-folder {
+    .c-listing:not(:first-child) {
+        margin-left: @medium-spacer;
     }
 }
 
@@ -625,13 +660,21 @@ body>.login.button {
     }
 }
 
-.tabs {
-    display:block;
+.tabs, .c-tabs {
+    flex-flow: row wrap;
     margin: @medium-spacer @small-spacer 0px @small-spacer;
     span {
         padding: 1px @medium-spacer;
+        margin-right: @small-spacer;
         border-radius: 0px @border-radius 0px 0px;
     }
+}
+
+.c-statblock {
+    max-width: @fixed-column-width;
+    width: @fixed-column-width;
+    flex-shrink: 1;
+    overflow-y: auto;
 }
 
 .damage-suggestion {
@@ -646,7 +689,7 @@ body>.login.button {
     }
 }
 
-.statblock {
+.statblock, .c-statblock {
     display:block;
     padding:@small-spacer;
     line-height: 1.4em;
@@ -895,6 +938,10 @@ body>.login.button {
             margin: @small-spacer;
         }
     }
+
+    input {
+        margin: 0 @medium-spacer;
+    }
 }
 
 #playerview {
@@ -951,9 +998,25 @@ body>.login.button {
     }
 }
 
-.c-color-chooser {
+.c-styles-chooser {
     flex-flow: row;
     justify-content: space-between;
+}
+
+.c-styles-chooser-inputs {
+    max-width: 250px;
+}
+
+.p-quick-add {
+    flex-flow: row;
+    align-items: center;
+    > * {
+        margin: @medium-spacer;
+    }
+}
+
+.s-roll-max {
+    font-weight: bold;
 }
 
 @import "responsive.less";

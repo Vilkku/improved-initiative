@@ -1,5 +1,5 @@
 import { Listable } from "../../common/Listable";
-import { probablyUniqueString } from "../Utility/Toolbox";
+import { probablyUniqueString } from "../../common/Toolbox";
 
 export interface AbilityScores {
     Str: number;
@@ -34,6 +34,7 @@ export interface StatBlock extends Listable {
     Speed: string[];
     Abilities: AbilityScores;
     InitiativeModifier?: number;
+    InitiativeAdvantage?: boolean;
     DamageVulnerabilities: string[];
     DamageResistances: string[];
     DamageImmunities: string[];
@@ -55,9 +56,13 @@ export class StatBlock {
     public static GetKeywords = (statBlock: StatBlock) => statBlock.Type.toLocaleLowerCase().replace(/[^\w\s]/g, "");
 
     public static Default = (): StatBlock => ({
-        Id: probablyUniqueString(), Name: "", Source: "", Type: "",
+        Id: probablyUniqueString(),
+        Name: "",
+        Path: "",
+        Source: "", Type: "",
         HP: { Value: 1, Notes: "1d1+0" }, AC: { Value: 10, Notes: "" },
         InitiativeModifier: 0,
+        InitiativeAdvantage: false,
         Speed: [],
         Abilities: { Str: 10, Dex: 10, Con: 10, Cha: 10, Int: 10, Wis: 10 },
         DamageVulnerabilities: [], DamageResistances: [], DamageImmunities: [], ConditionImmunities: [],
@@ -69,7 +74,7 @@ export class StatBlock {
         LegendaryActions: [],
         Description: "",
         Player: "",
-        Version: "1.0.0",
+        Version: process.env.VERSION,
     })
 
     public static readonly AbilityNames = ["Str", "Dex", "Con", "Cha", "Int", "Wis"];

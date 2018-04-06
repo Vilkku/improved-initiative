@@ -10,6 +10,6 @@ public/fonts/*
 .vscode
 .baseDir
 !Gruntfile.js
-!webpack.*.js
+!*.config.js
 !test/test.js
 .idea

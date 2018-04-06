@@ -2,13 +2,6 @@ export interface KeyValueSet<T> {
     [key: string]: T;
 }
 
-export function removeFirst<T>(array: T[], item: T) {
-    const index = array.indexOf(item);
-    if (index > -1) {
-        array.splice(index, 1);
-    }
-}
-
 export function toModifierString(number: number): string {
     if (number >= 0) {
         return `+${number}`;
@@ -25,6 +18,6 @@ export function probablyUniqueString(): string {
         let index = Math.floor(Math.random() * chars.length);
         probablyUniqueString += chars[index];
     }
-    
+
     return probablyUniqueString;
 }

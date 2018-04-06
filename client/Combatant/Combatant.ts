@@ -1,10 +1,10 @@
+import { probablyUniqueString } from "../../common/Toolbox";
 import { Encounter } from "../Encounter/Encounter";
 import { SavedCombatant } from "../Encounter/SavedEncounter";
 import { Dice } from "../Rules/Rules";
 import { CurrentSettings } from "../Settings/Settings";
 import { AbilityScores, StatBlock } from "../StatBlock/StatBlock";
 import { Metrics } from "../Utility/Metrics";
-import { probablyUniqueString } from "../Utility/Toolbox";
 import { Tag } from "./Tag";
 
 export interface Combatant {
@@ -92,7 +92,7 @@ export class Combatant implements Combatant {
     private updatingGroup = false;
 
     private processStatBlock(newStatBlock: StatBlock, oldStatBlock?: StatBlock) {
-        this.setIndexLabel(oldStatBlock && oldStatBlock.Name);
+        this.updateIndexLabel(oldStatBlock && oldStatBlock.Name);
         this.IsPlayerCharacter = newStatBlock.Player == "player";
         this.AC = newStatBlock.AC.Value;
         this.MaxHP = newStatBlock.HP.Value;
@@ -102,6 +102,7 @@ export class Combatant implements Combatant {
         }
         this.InitiativeBonus = this.AbilityModifiers.Dex + newStatBlock.InitiativeModifier || 0;
         this.ConcentrationBonus = this.AbilityModifiers.Con;
+        this.setAutoInitiativeGroup();
     }
 
     private processSavedCombatant(savedCombatant: SavedCombatant) {
@@ -114,6 +115,13 @@ export class Combatant implements Combatant {
         this.Tags(Tag.getLegacyTags(savedCombatant.Tags, this));
         this.Hidden(savedCombatant.Hidden);
         this.NameHidden(savedCombatant.NameHidden);
+
+        const indexLabelCollides = this.Encounter.Combatants()
+            .some(c => c.DisplayName() == this.DisplayName());
+        if (indexLabelCollides) {
+            this.updateIndexLabel(savedCombatant.StatBlock.Name);
+        }
+
     }
 
     private getMaxHP(statBlock: StatBlock) {
@@ -133,25 +141,25 @@ export class Combatant implements Combatant {
         return statBlock.HP.Value;
     }
 
-    private setIndexLabel(oldName?: string) {
-        let name = this.StatBlock().Name,
-            counts = this.Encounter.CombatantCountsByName();
+    private updateIndexLabel(oldName?: string) {
+        const name = this.StatBlock().Name;
+        const counts = this.Encounter.CombatantCountsByName();
         if (name == oldName) {
+            this.IndexLabel = counts[name];
             return;
         }
-
-        if (!counts[oldName]) {
-            counts[oldName] = 1;
-        }
         if (oldName) {
+            if (!counts[oldName]) {
+                counts[oldName] = 1;
+            }
             counts[oldName] = counts[oldName] - 1;
         }
-
         if (!counts[name]) {
             counts[name] = 1;
         } else {
             counts[name] = counts[name] + 1;
         }
+
         this.IndexLabel = counts[name];
         this.Encounter.CombatantCountsByName(counts);
     }
@@ -164,7 +172,13 @@ export class Combatant implements Combatant {
         return modifiers;
     }
 
-    public GetInitiativeRoll = () => this.Encounter.Rules.AbilityCheck(this.InitiativeBonus);
+    public GetInitiativeRoll: () => number = () => {
+        const sideInitiative = CurrentSettings().Rules.AutoGroupInitiative == "Side Initiative";
+        const initiativeBonus = sideInitiative ? 0 : this.InitiativeBonus;
+        const initiativeAdvantage = (!sideInitiative && this.StatBlock().InitiativeAdvantage) ? "advantage" : null;
+        return this.Encounter.Rules.AbilityCheck(initiativeBonus, initiativeAdvantage);
+    }
+
     public GetConcentrationRoll = () => this.Encounter.Rules.AbilityCheck(this.ConcentrationBonus);
 
     public ApplyDamage(damage: number) {
@@ -219,4 +233,40 @@ export class Combatant implements Combatant {
 
         return name;
     });
+
+    private setAutoInitiativeGroup = () => {
+        const autoInitiativeGroup = CurrentSettings().Rules.AutoGroupInitiative;
+        let lowestInitiativeCombatant = null;
+        if (autoInitiativeGroup == "None") { return; }
+        if (autoInitiativeGroup == "By Name") {
+            if (this.IsPlayerCharacter) { return; }
+            lowestInitiativeCombatant = this.findLowestInitiativeGroupByName();
+        } else if (autoInitiativeGroup == "Side Initiative") {
+            lowestInitiativeCombatant = this.findLowestInitiativeGroupBySide();
+        }
+
+        if (lowestInitiativeCombatant) {
+            if (!lowestInitiativeCombatant.InitiativeGroup()) {
+                const initiativeGroup = probablyUniqueString();
+                lowestInitiativeCombatant.InitiativeGroup(initiativeGroup);
+            }
+
+            this.Initiative(lowestInitiativeCombatant.Initiative());
+            this.InitiativeGroup(lowestInitiativeCombatant.InitiativeGroup());
+            }
+    }
+
+    private findLowestInitiativeGroupByName(): Combatant {
+        const combatants = this.Encounter.Combatants();
+        return combatants.filter(c => c != this)
+            .filter(c => c.StatBlock().Name === this.StatBlock().Name)
+            .sort((a, b) => a.Initiative() - b.Initiative())[0];
+    }
+
+    private findLowestInitiativeGroupBySide(): Combatant {
+        const combatants = this.Encounter.Combatants();
+        return combatants.filter(c => c != this)
+            .filter(c => c.IsPlayerCharacter === this.IsPlayerCharacter)
+            .sort((a, b) => a.Initiative() - b.Initiative())[0];
+    }
 }

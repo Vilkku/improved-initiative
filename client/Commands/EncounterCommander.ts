@@ -1,7 +1,9 @@
+import { probablyUniqueString } from "../../common/Toolbox";
 import { AccountClient } from "../Account/AccountClient";
+import { SavedCombatant, SavedEncounter } from "../Encounter/SavedEncounter";
+import { UpdateLegacySavedEncounter } from "../Encounter/UpdateLegacySavedEncounter";
 import { Libraries } from "../Library/Libraries";
 import { Listing } from "../Library/Listing";
-import { Dice } from "../Rules/Rules";
 import { CurrentSettings } from "../Settings/Settings";
 import { Spell } from "../Spell/Spell";
 import { StatBlock } from "../StatBlock/StatBlock";
@@ -9,9 +11,9 @@ import { TrackerViewModel } from "../TrackerViewModel";
 import { TutorialSpy } from "../Tutorial/TutorialViewModel";
 import { ComponentLoader } from "../Utility/Components";
 import { Store } from "../Utility/Store";
-import { probablyUniqueString } from "../Utility/Toolbox";
 import { BuildEncounterCommandList, Command } from "./Command";
 import { DefaultPrompt } from "./Prompts/Prompt";
+import { QuickAddPromptWrapper } from "./Prompts/QuickAddPrompt";
 import { SpellPrompt } from "./Prompts/SpellPrompt";
 
 export class EncounterCommander {
@@ -24,15 +26,19 @@ export class EncounterCommander {
         this.libraries = tracker.Libraries;
     }
 
-    public AddStatBlockFromListing = (listing: Listing<StatBlock>, event: JQuery.Event) => {
-        listing.GetAsync(statBlock => {
-            this.tracker.Encounter.AddCombatantFromStatBlock(statBlock, event);
+    public AddStatBlockFromListing = (listing: Listing<StatBlock>, hideOnAdd: boolean) => {
+        listing.GetAsyncWithUpdatedId(statBlock => {
+            this.tracker.Encounter.AddCombatantFromStatBlock(statBlock, hideOnAdd);
             this.tracker.EventLog.AddEvent(`${statBlock.Name} added to combat.`);
         });
     }
 
-    private deleteSavedStatBlock = (library: string, statBlockId: string) => {
-        Store.Delete(library, statBlockId);
+    public QuickAddStatBlock = () => {
+        const prompt = new QuickAddPromptWrapper(this.tracker.Encounter.AddCombatantFromStatBlock);
+        this.tracker.PromptQueue.Add(prompt);
+    }
+
+    private deleteSavedStatBlock = (library: string, statBlockId: string) => () => {
         if (library == Store.PlayerCharacters) {
             this.libraries.PCs.DeleteListing(statBlockId);
         }
@@ -41,15 +47,15 @@ export class EncounterCommander {
         }
     }
 
-    private saveNewStatBlock = (store: string, statBlockId: string, newStatBlock: StatBlock) => {
-        const listing = new Listing<StatBlock>(statBlockId, newStatBlock.Name, newStatBlock.Type, store, "localStorage", newStatBlock);
+    private createSaveNewStatBlockCallback = (store: string, statBlockId: string) => (newStatBlock: StatBlock) => {
+        const listing = new Listing<StatBlock>(statBlockId, newStatBlock.Name, newStatBlock.Path, newStatBlock.Type, store, "localStorage", newStatBlock);
         Store.Save<StatBlock>(store, statBlockId, newStatBlock);
         if (store == Store.PlayerCharacters) {
             this.libraries.PCs.StatBlocks.push(listing);
             this.accountClient.SavePlayerCharacter(newStatBlock)
                 .then(r => {
                     if (!r) return;
-                    const accountListing = new Listing<StatBlock>(statBlockId, newStatBlock.Name, newStatBlock.Type, `/my/playercharacters/${statBlockId}`, "account", newStatBlock);
+                    const accountListing = new Listing<StatBlock>(statBlockId, newStatBlock.Name, newStatBlock.Path, newStatBlock.Type, `/my/playercharacters/${statBlockId}`, "account", newStatBlock);
                     this.libraries.PCs.StatBlocks.push(accountListing);
                 });
         } else {
@@ -57,34 +63,36 @@ export class EncounterCommander {
             this.accountClient.SaveStatBlock(newStatBlock)
                 .then(r => {
                     if (!r) return;
-                    const accountListing = new Listing<StatBlock>(statBlockId, newStatBlock.Name, newStatBlock.Type, `/my/statblocks/${statBlockId}`, "account", newStatBlock);
+                    const accountListing = new Listing<StatBlock>(statBlockId, newStatBlock.Name, newStatBlock.Path, newStatBlock.Type, `/my/statblocks/${statBlockId}`, "account", newStatBlock);
                     this.libraries.NPCs.StatBlocks.push(accountListing);
                 });
         }
     }
 
-    private saveEditedStatBlock = (listing: Listing<StatBlock>) =>
-        (store: string, statBlockId: string, newStatBlock: StatBlock) => {
-            Store.Save<StatBlock>(store, statBlockId, newStatBlock);
-            listing.SetValue(newStatBlock);
-            if (store == Store.PlayerCharacters) {
-                this.accountClient.SavePlayerCharacter(newStatBlock)
-                    .then(r => {
-                        if (!r) return;
-                        if (listing.Origin === "account") return;
-                        const accountListing = new Listing<StatBlock>(statBlockId, newStatBlock.Name, newStatBlock.Type, `/my/playercharacters/${statBlockId}`, "account", newStatBlock);
-                        this.libraries.PCs.StatBlocks.push(accountListing);
-                    });
-            } else {
-                this.accountClient.SaveStatBlock(newStatBlock)
-                    .then(r => {
-                        if (!r) return;
-                        if (listing.Origin === "account") return;
-                        const accountListing = new Listing<StatBlock>(statBlockId, newStatBlock.Name, newStatBlock.Type, `/my/statblocks/${statBlockId}`, "account", newStatBlock);
-                        this.libraries.NPCs.StatBlocks.push(accountListing);
-                    });
-            }
+    private createSaveEditedStatBlockCallback = (store: string, listing: Listing<StatBlock>) => (newStatBlock: StatBlock) => {
+        const statBlockId = listing.Id;
+        Store.Save<StatBlock>(store, statBlockId, newStatBlock);
+        listing.SetValue(newStatBlock);
+        if (store == Store.PlayerCharacters) {
+            this.accountClient.SavePlayerCharacter(newStatBlock)
+                .then(r => {
+                    if (!r || listing.Origin === "account") {
+                        return;
+                    }
+                    const accountListing = new Listing<StatBlock>(statBlockId, newStatBlock.Name, newStatBlock.Path, newStatBlock.Type, `/my/playercharacters/${statBlockId}`, "account", newStatBlock);
+                    this.libraries.PCs.StatBlocks.push(accountListing);
+                });
+        } else {
+            this.accountClient.SaveStatBlock(newStatBlock)
+                .then(r => {
+                    if (!r || listing.Origin === "account") {
+                        return;
+                    }
+                    const accountListing = new Listing<StatBlock>(statBlockId, newStatBlock.Name, newStatBlock.Path, newStatBlock.Type, `/my/statblocks/${statBlockId}`, "account", newStatBlock);
+                    this.libraries.NPCs.StatBlocks.push(accountListing);
+                });
         }
+    }
 
 
     public CreateAndEditStatBlock = (isPlayerCharacter: boolean) => {
@@ -94,20 +102,21 @@ export class EncounterCommander {
         if (isPlayerCharacter) {
             statBlock.Name = "New Player Character";
             statBlock.Player = "player";
-            this.tracker.StatBlockEditor.EditStatBlock(newId, statBlock, this.saveNewStatBlock, () => { }, "global");
+            this.tracker.StatBlockEditor.EditStatBlock(newId, statBlock, this.createSaveNewStatBlockCallback(Store.PlayerCharacters, newId), () => { }, "global");
         } else {
             statBlock.Name = "New Creature";
-            this.tracker.StatBlockEditor.EditStatBlock(newId, statBlock, this.saveNewStatBlock, () => { }, "global");
+            this.tracker.StatBlockEditor.EditStatBlock(newId, statBlock, this.createSaveNewStatBlockCallback(Store.StatBlocks, newId), () => { }, "global");
         }
     }
 
-    public EditStatBlock = (listing: Listing<StatBlock>) => {
-        listing.GetAsync(statBlock => {
+    public EditStatBlock = (listing: Listing<StatBlock>, isPlayerCharacter: boolean) => {
+        const store = isPlayerCharacter ? Store.PlayerCharacters : Store.StatBlocks;
+        listing.GetAsyncWithUpdatedId(statBlock => {
             if (listing.Origin === "server") {
                 let newId = probablyUniqueString();
-                this.tracker.StatBlockEditor.EditStatBlock(newId, statBlock, this.saveNewStatBlock, () => { }, "global");
+                this.tracker.StatBlockEditor.EditStatBlock(newId, statBlock, this.createSaveNewStatBlockCallback(store, newId), () => { }, "global");
             } else {
-                this.tracker.StatBlockEditor.EditStatBlock(listing.Id, statBlock, this.saveEditedStatBlock(listing), this.deleteSavedStatBlock, "global");
+                this.tracker.StatBlockEditor.EditStatBlock(listing.Id, statBlock, this.createSaveEditedStatBlockCallback(store, listing), this.deleteSavedStatBlock(store, listing.Id), "global");
             }
         });
     }
@@ -122,7 +131,7 @@ export class EncounterCommander {
     }
 
     public EditSpell = (listing: Listing<Spell>) => {
-        listing.GetAsync(spell => {
+        listing.GetAsyncWithUpdatedId(spell => {
             this.tracker.SpellEditor.EditSpell(
                 spell,
                 this.libraries.Spells.AddOrUpdateSpell,
@@ -145,12 +154,6 @@ export class EncounterCommander {
 
     public ToggleToolbarWidth = () => {
         this.tracker.ToolbarWide(!this.tracker.ToolbarWide());
-    }
-
-    public RollDice = (diceExpression: string) => {
-        const diceRoll = Dice.RollDiceExpression(diceExpression);
-        const prompt = new DefaultPrompt(`Rolled: ${diceExpression} -> ${diceRoll.String} <input class='response' type='number' value='${diceRoll.Total}' />`);
-        this.tracker.PromptQueue.Add(prompt);
     }
 
     public ReferenceSpell = (spellListing: Listing<Spell>) => {
@@ -209,13 +212,32 @@ export class EncounterCommander {
         const prompt = new DefaultPrompt(`Save Encounter As: <input id='encounterName' class='response' type='text' />`,
             response => {
                 const encounterName = response["encounterName"];
+                const path = ""; //TODO
                 if (encounterName) {
-                    const savedEncounter = this.tracker.Encounter.Save(encounterName);
+                    const savedEncounter = this.tracker.Encounter.Save(encounterName, path);
                     this.libraries.Encounters.Save(savedEncounter);
                     this.tracker.EventLog.AddEvent(`Encounter saved as ${encounterName}.`);
                 }
             });
         this.tracker.PromptQueue.Add(prompt);
+    }
+
+    public MoveEncounter = (legacySavedEncounter: { Name?: string }) => {
+        const name = legacySavedEncounter.Name || "";
+        const prompt = new DefaultPrompt(`Move encounter ${legacySavedEncounter.Name} to Folder: <input id='folderName' class='response' type='text' />`,
+            response => {
+                const folderName = response["folderName"] || "";
+                const savedEncounter = UpdateLegacySavedEncounter(legacySavedEncounter);
+                const oldId = savedEncounter.Id;
+                savedEncounter.Path = folderName;
+                savedEncounter.Id = AccountClient.MakeId(savedEncounter.Name, savedEncounter.Path);
+                this.libraries.Encounters.Move(savedEncounter, oldId);
+            });
+        this.tracker.PromptQueue.Add(prompt);
+    }
+
+    public LoadEncounter = (legacySavedEncounter: {}) => {
+        this.tracker.Encounter.LoadSavedEncounter(UpdateLegacySavedEncounter(legacySavedEncounter));
     }
 
     public NextTurn = () => {

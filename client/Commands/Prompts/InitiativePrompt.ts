@@ -1,6 +1,7 @@
+import { toModifierString } from "../../../common/Toolbox";
 import { Combatant } from "../../Combatant/Combatant";
+import { CurrentSettings } from "../../Settings/Settings";
 import { TutorialSpy } from "../../Tutorial/TutorialViewModel";
-import { toModifierString } from "../../Utility/Toolbox";
 import { Prompt } from "./Prompt";
 
 export class InitiativePrompt implements Prompt {
@@ -11,12 +12,18 @@ export class InitiativePrompt implements Prompt {
     private dequeue;
 
     constructor(combatants: Combatant[], startEncounter: () => void) {
-        const toPrompt = (combatant: Combatant) => ({
-            Id: combatant.Id,
-            Prompt: `${combatant.DisplayName()} (${toModifierString(combatant.InitiativeBonus)}): `,
-            Css: combatant.InitiativeGroup() !== null ? "fa fa-link" : "",
-            PreRoll: combatant.GetInitiativeRoll()
-        });
+        const toPrompt = (combatant: Combatant) => {
+            const sideInitiative = CurrentSettings().Rules.AutoGroupInitiative == "Side Initiative";
+            const initiativeBonus = sideInitiative ? 0 : toModifierString(combatant.InitiativeBonus);
+            const advantageIndicator = (!sideInitiative && combatant.StatBlock().InitiativeAdvantage) ? "[adv]" : "";
+
+            return {
+                Id: combatant.Id,
+                Prompt: `${combatant.DisplayName()} (${initiativeBonus})${advantageIndicator}: `,
+                Css: combatant.InitiativeGroup() !== null ? "fa fa-link" : "",
+                PreRoll: combatant.GetInitiativeRoll()
+            };
+        };
 
         const groups = [];
 

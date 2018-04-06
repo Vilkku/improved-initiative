@@ -1,10 +1,6 @@
-import { EncounterLibraryViewModelWrapper } from "../Library/EncounterLibraryViewModelWrapper";
-import { LibrariesViewModel } from "../Library/LibrariesViewModel";
-import { SpellLibraryViewModel } from "../Library/SpellLibraryViewModel";
-import { StatBlockLibraryViewModel } from "../Library/StatBlockLibraryViewModel";
+import * as _ from "lodash";
 import { SettingsViewModel } from "../Settings/SettingsViewModel";
 import { TutorialViewModel } from "../Tutorial/TutorialViewModel";
-import { removeFirst } from "./Toolbox";
 
 const pendingComponents: JQueryXHR[] = [];
 
@@ -24,7 +20,7 @@ export let RegisterComponents = () => {
                     ko.components.defaultLoader.loadTemplate(name, markupString, callback);
                 });
                 pendingComponents.push(request);
-                request.always(_ => removeFirst(pendingComponents, request));
+                request.always(() => _.pull(pendingComponents, request));
             } else {
                 // Unrecognized config format. Let another loader handle it.
                 callback(null);
@@ -47,10 +43,6 @@ export let RegisterComponents = () => {
     registerComponent("activestatblock", params => params.statBlock);
     registerComponent("combatant", params => params.viewModel);
     registerComponent("playerdisplaycombatant", params => params.combatant);
-    registerComponent("libraries", params => new LibrariesViewModel(params.tracker, params.encounterCommander, params.libraries));
-    registerComponent("statblocklibrary", params => new StatBlockLibraryViewModel(params.encounterCommander, params.library));
-    registerComponent("encounterlibrary", params => new EncounterLibraryViewModelWrapper(params.tracker, params.library));
-    registerComponent("spelllibrary", params => new SpellLibraryViewModel(params.encounterCommander, params.library));
     registerComponent("defaultprompt", params => params.prompt);
     registerComponent("tagprompt", params => params.prompt);
     registerComponent("concentrationprompt", params => params.prompt);
@@ -58,6 +50,7 @@ export let RegisterComponents = () => {
     registerComponent("spellprompt", params => params.prompt);
     registerComponent("acceptdamageprompt", params => params.prompt);
     registerComponent("acceptinitiativeprompt", params => params.prompt);
+    registerComponent("reactprompt", params => params.prompt);
     registerComponent("tutorial", params => new TutorialViewModel(params));
     registerComponent("playersuggestion", params => params.suggestion);
     registerComponent("playerinitiativesuggestion", params => params.suggestion);

@@ -4,6 +4,8 @@ import { CommandSetting } from "../Commands/CommandSetting";
 import { Store } from "../Utility/Store";
 
 export const CurrentSettings = ko.observable<Settings>();
+export const AutoGroupInitiativeOptions = ["None", "By Name", "Side Initiative"];
+export type AutoGroupInitiativeOption = "None" | "By Name" | "Side Initiative";
 
 export interface Settings {
     Commands: CommandSetting[];
@@ -11,6 +13,7 @@ export interface Settings {
         RollMonsterHp: boolean;
         AllowNegativeHP: boolean;
         AutoCheckConcentration: boolean;
+        AutoGroupInitiative: AutoGroupInitiativeOption;
     };
     TrackerView: {
         DisplayRoundCounter: boolean;
@@ -20,6 +23,7 @@ export interface Settings {
     PlayerView: PlayerViewSettings;
     Version: string;
 }
+
 
 export const hpVerbosityOptions = [
     "Actual HP",
@@ -43,7 +47,8 @@ function getDefaultSettings(): Settings {
         Rules: {
             RollMonsterHp: false,
             AllowNegativeHP: false,
-            AutoCheckConcentration: true
+            AutoCheckConcentration: true,
+            AutoGroupInitiative: "None"
         },
         TrackerView: {
             DisplayRoundCounter: false,
@@ -64,10 +69,11 @@ function getDefaultSettings(): Settings {
                 font: "",
                 headerBackground: "",
                 headerText: "",
-                mainBackground: ""
+                mainBackground: "",
+                backgroundUrl: "",
             }
         },
-        Version: "1.2.0" //TODO: Populate with package version
+        Version: process.env.VERSION
     };
 }
 
@@ -87,7 +93,8 @@ function getLegacySettings(): Settings {
         Rules: {
             RollMonsterHp: getLegacySetting<boolean>("RollMonsterHP", false),
             AllowNegativeHP: getLegacySetting<boolean>("AllowNegativeHP", false),
-            AutoCheckConcentration: getLegacySetting<boolean>("AutoCheckConcentration", true)
+            AutoCheckConcentration: getLegacySetting<boolean>("AutoCheckConcentration", true),
+            AutoGroupInitiative: getLegacySetting<AutoGroupInitiativeOption>("AutoGroupInitiative", "None")
         },
         TrackerView: {
             DisplayRoundCounter: getLegacySetting<boolean>("DisplayRoundCounter", false),
@@ -161,6 +168,11 @@ function updateSettings(settings: any): Settings {
         settings.PlayerView.CustomCSS = defaultSettings.PlayerView.CustomCSS;
         settings.PlayerView.CustomStyles = defaultSettings.PlayerView.CustomStyles;
     }
+
+    if (updateToSemanticVersionIsRequired(settings.Version, "1.3.0")) {
+        settings.PlayerView.CustomStyles.backgroundUrl = defaultSettings.PlayerView.CustomStyles.backgroundUrl;
+    }
+
     return settings;
 }
 
