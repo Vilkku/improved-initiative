@@ -122,6 +122,21 @@ export default function (app: express.Application, statBlockLibrary: Library<Sta
             "name": "Improved Initiative",
             "icons": [
                 {
+                    "src": "/img/logo-96.png",
+                    "type": "image/png",
+                    "sizes": "96x96"
+                },
+                {
+                    "src": "/img/logo-144.png",
+                    "type": "image/png",
+                    "sizes": "144x144"
+                },
+                {
+                    "src": "/img/logo-168.png",
+                    "type": "image/png",
+                    "sizes": "168x168"
+                },
+                {
                     "src": "/img/logo-192.png",
                     "type": "image/png",
                     "sizes": "192x192"
@@ -129,8 +144,9 @@ export default function (app: express.Application, statBlockLibrary: Library<Sta
             ],
             "background_color": "#00643c",
             "display": "standalone",
+            "orientation": "portrait",
             "theme_color": "#0a0908",
-            "start_url": "/p/" + req.params.id
+            "start_url": "https://vilkku.xyz/p/" + req.params.id
         });
     });
 
