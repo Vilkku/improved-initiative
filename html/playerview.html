@@ -3,17 +3,19 @@
 
 <head>
     <meta charset="utf-8">
-    <link rel="stylesheet" type="text/css" href="{{rootDirectory}}/css/improved-initiative.css">
     <meta name="description" content="Track your heroes' fight on the Improved Initiative player view.">
     <meta property="og:image" content="img/improved-initiative-transparent-darkgreen.png">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="theme-color" content="#0a0908">
+
+    <link rel="manifest" href="/p/{{encounterId}}/manifest.json">
+    <link rel="stylesheet" type="text/css" href="{{rootDirectory}}/css/improved-initiative.css">
+
     <title>Player View - Improved Initiative</title>
 
     <script type="text/javascript" src="{{rootDirectory}}/js/dependencies.js"></script>
     <script type="text/javascript" src="{{rootDirectory}}/js/ImprovedInitiative.js"></script>
-    <meta name="mobile-web-app-capable" content="yes">
-    <link rel="manifest" href="/manifest.json">
 </head>
 
 <body id="playerview">
@@ -65,7 +67,7 @@
         <span class="round-counter" data-bind="visible: roundCounterVisible">Current Round: <span data-bind="text: roundCounter"></span></span>
     </div>
     <!-- /ko -->
-    <script type="text/javascript" src="{{rootDirectory}}/main.js"></script>
+    <script type="text/javascript" src="/main.js"></script>
 </body>
 
 </html>

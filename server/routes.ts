@@ -116,6 +116,24 @@ export default function (app: express.Application, statBlockLibrary: Library<Sta
         res.render("tracker", options);
     });
 
+    app.get("/p/:id/manifest.json", (req: Req, res: Res) => {
+        res.json({
+            "short_name": "Improved Initiative",
+            "name": "Improved Initiative",
+            "icons": [
+                {
+                    "src": "/img/logo-192.png",
+                    "type": "image/png",
+                    "sizes": "192x192"
+                }
+            ],
+            "background_color": "#00643c",
+            "display": "standalone",
+            "theme_color": "#0a0908",
+            "start_url": "/p/" + req.params.id
+        });
+    });
+
     app.get("/p/:id", (req: Req, res: Res) => {
         res.render("playerview", pageRenderOptions(req.params.id, req.session));
     });
