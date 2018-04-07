@@ -146,7 +146,7 @@ export default function (app: express.Application, statBlockLibrary: Library<Sta
             "display": "standalone",
             "orientation": "portrait",
             "theme_color": "#0a0908",
-            "start_url": "https://vilkku.xyz/p/" + req.params.id
+            "start_url": "/p/" + req.params.id
         });
     });
 
