@@ -27,6 +27,10 @@ export class CombatantSuggestor {
         const element = $(form).find("[name=suggestedDamage]").first();
         const value = parseInt(element.val().toString(), 10);
         if (!isNaN(value) && value !== 0) {
+            if ($(form).find("[name=damageType]:checked").val() === 'healing') {
+                value = value * -1;
+            }
+
             this.Socket.emit("suggest damage", this.EncounterId, [this.Combatant().Id], value, "Player");
         }
         element.val("");

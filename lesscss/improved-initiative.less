@@ -119,7 +119,7 @@ input[type="file"] {
     padding: @button-padding;
     text-align: center;
     text-decoration: none;
-    
+
 	border-radius: @border-radius;
     border: 0;
 }
@@ -163,7 +163,7 @@ input[type="file"] {
     border-width: 2px;
     border-style: solid;
     border-radius: @border-radius;
-    padding: @medium-spacer;
+    padding: @large-spacer;
     z-index: 3;
     flex-shrink: 1;
 }
@@ -231,6 +231,25 @@ body>.login.button {
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
+
+    input[name="suggestedDamage"] {
+        width: 150px;
+        font-size: 100%;
+        padding: 10px;
+    }
+
+    button {
+        width: 100%;
+    }
+
+    div {
+        margin-bottom: 10px;
+    }
+
+    label {
+        padding-top: 5px;
+        padding-bottom: 5px;
+    }
 }
 
 .social-media {
@@ -250,7 +269,7 @@ body>.login.button {
 
     margin: @medium-spacer;
     padding: @medium-spacer;
-        
+
     border-radius: @border-radius;
     box-shadow: 2px 2px 1px inset;
 }
@@ -263,7 +282,7 @@ body>.login.button {
     h1 {
         padding:25px;
     }
-        
+
     input[type="text"] {
         padding: @medium-spacer;
         line-height: 2em;
@@ -274,7 +293,7 @@ body>.login.button {
         align-items: center;
         max-width:800px;
     }
-    
+
     .logo {
         flex-grow:1;
         margin: 0 30px;
@@ -291,11 +310,11 @@ body>.login.button {
         flex-grow: 1;
         flex-shrink: 1;
         align-items: center;
-        
+
         padding:@large-spacer;
         margin: 0 30px;
     }
-    
+
     .launch-controls {
         div {
             flex-direction: row;
@@ -315,24 +334,24 @@ body>.login.button {
     }
     .footer {
         .recessed();
-        
+
         border-radius: 0;
         text-align: center;
         align-self: stretch;
 
         margin: @medium-spacer 0 0 0;
     }
-    
+
     @logo-size: 40px;
     .pledge-logo {
         img {
             width: @logo-size;
         }
-        
+
         position: absolute;
         bottom: -1/4 * @logo-size;
         right: -1/4 * @logo-size;
-        
+
         .hop();
     }
 }
@@ -341,7 +360,7 @@ body>.login.button {
     flex-direction: row;
     overflow:hidden;
     align-items: stretch;
-    
+
     .center-column {
         flex-grow:1;
         flex-shrink:1;
@@ -350,7 +369,7 @@ body>.login.button {
         background-position: center bottom 20px;
         background-repeat: no-repeat;
     }
-    
+
     .left-column, .right-column, .preview.statblock {
         .recessed();
 
@@ -505,7 +524,7 @@ body>.login.button {
         flex-grow:1;
         font-family: Courier New, Courier, monospace;
     }
-    
+
     .buttons {
         flex-direction: row;
         justify-content: flex-end;
@@ -592,7 +611,7 @@ body>.login.button {
     .whatsnew a {
         font-weight: bold;
     }
-    
+
     .repeat-tutorial {
         align-self: flex-end;
     }
@@ -613,13 +632,13 @@ body>.login.button {
 
     .hotkey-label, .keybinding {
         text-align: center;
-        width: 100px; 
+        width: 100px;
     }
 
     .keybindings >div {
         flex-direction: row;
         align-items: center;
-        
+
         >span, >label {
             padding:@small-spacer;
         }
@@ -677,18 +696,6 @@ body>.login.button {
     overflow-y: auto;
 }
 
-.damage-suggestion {
-    font-size: initial;
-
-    .tip {
-        font-size: smaller;
-    }
-
-    form {
-        padding-bottom: @large-spacer;
-    }
-}
-
 .statblock, .c-statblock {
     display:block;
     padding:@small-spacer;
@@ -718,7 +725,7 @@ body>.login.button {
     .power-content {
         white-space: pre-line;
     }
-    
+
     .Abilities {
         justify-content: space-around;
         div {
@@ -727,7 +734,7 @@ body>.login.button {
         }
         margin-bottom: @small-spacer;
     }
-    
+
     .modifiers, .keyword-sets {
         flex-direction: column;
         div {
@@ -816,7 +823,7 @@ body>.login.button {
     &.active .name {
         font-weight:bold;
     }
-    
+
     &.header {
         padding: @medium-spacer 0;
     }
@@ -992,7 +999,7 @@ body>.login.button {
     &.s-selected {
         border-color: white;
     }
-    
+
     &:hover {
         border-color: gray;//todo: move
     }

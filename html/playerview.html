@@ -44,7 +44,9 @@
     </div>
     <!-- /ko -->
     <div class="combatant header">
-        <div class="initiative"><span class="fa fa-forward"></span></div>
+        <div class="initiative">
+            <span class="fa" data-bind="css: stateIcon, attr: { title: stateTip }"></span>
+        </div>
         <div class="name">Combatant</div>
         <div class="hp"><span class="fa fa-heart"></span></div>
         <div class="tags"><span class="fa fa-tag"></span></div>
@@ -53,7 +55,7 @@
         <!-- ko foreach: combatants -->
         <li class="combatant" data-bind="
         css: { active: $parent.activeCombatant() == $data,
-                playercharacter: $data.IsPlayerCharacter }, 
+                playercharacter: $data.IsPlayerCharacter },
         component: {
             name: 'playerdisplaycombatant',
             params: { combatant: $data }

@@ -1,6 +1,15 @@
 <form data-bind="submit: Resolve">
-    Suggest damage/healing for <span data-bind="text: Name"></span>:
-    <input type="number" name="suggestedDamage" />
-    <button type='submit' class='fa fa-check button'></button>
+    <div><span data-bind="text: Name"></span></div>
+    <div><input type="number" name="suggestedDamage" /></div>
+    <div>
+        <label>
+            <input type="radio" name="damageType" value="damage" checked />
+            Damage
+        </label>
+        <label>
+            <input type="radio" name="damageType" value="healing" />
+            Healing
+        </label>
+    </div>
+    <div><button type="submit" class="fa fa-check button"></button></div>
 </form>
-<div class="tip">Use a positive value to damage and a negative value to heal</div>

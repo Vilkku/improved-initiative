@@ -20,6 +20,10 @@ export class PlayerViewModel {
     private turnTimerVisible = ko.observable(false);
     private allowSuggestions = ko.observable(false);
 
+    private encounterState: KnockoutObservable<"active" | "inactive"> = ko.observable<"active" | "inactive">("inactive");
+    private stateIcon = ko.computed(() => this.encounterState() === "active" ? "fa-play" : "fa-pause");
+    private stateTip = ko.computed(() => this.encounterState() === "active" ? "Encounter Active" : "Encounter Inactive");
+
     private socket: SocketIOClient.Socket = io();
 
     private combatantSuggestor = new CombatantSuggestor(this.socket, this.encounterId);
@@ -73,6 +77,12 @@ export class PlayerViewModel {
             this.activeCombatant(this.combatants().filter(c => c.Id == encounter.ActiveCombatantId).pop());
             setTimeout(this.ScrollToActiveCombatant, 1);
         }
+
+        if (encounter.ActiveCombatantId) {
+            this.encounterState('active');
+        } else {
+            this.encounterState('inactive');
+        }
     }
 
     private ScrollToActiveCombatant = () => {
@@ -90,7 +100,7 @@ export class PlayerViewModel {
     }
 
     ShowInitiativeSuggestion = (combatant: StaticCombatantViewModel) => {
-        if (!this.allowSuggestions()) {
+        if (this.encounterState() === 'inactive') {
             return;
         }
         this.InitiativeSuggestor.Show(combatant);
