@@ -1,6 +1,9 @@
 <div data-bind="css: { 'disable-hover': !$root.allowSuggestions() }">
     <div data-bind="click: $root.ShowInitiativeSuggestion, text: Initiative" class="initiative"></div>
 </div>
+<div class="portrait" data-bind="visible: $root.hasImages">
+    <img data-bind="visible: ImageURL != '', attr:{ src: ImageURL }, click: function(){ $root.SplashPortrait(Id, true)}">
+</div>
 <div class="name">
     <span data-bind="text: Name, attr: {title: Name }"></span>
 </div>

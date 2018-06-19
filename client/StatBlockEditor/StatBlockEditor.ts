@@ -1,6 +1,8 @@
-import { stat } from "fs";
-import { Listable } from "../../common/Listable";
-import { StatBlock } from "../StatBlock/StatBlock";
+import * as ko from "knockout";
+import * as koMapping from "knockout-mapping";
+import * as _ from "lodash";
+
+import { StatBlock } from "../../common/StatBlock";
 import { RemovableArrayValue } from "../Utility/RemovableArrayValue";
 
 export class StatBlockEditor {
@@ -24,13 +26,13 @@ export class StatBlockEditor {
     ) => {
 
         this.preservedProperties = {
+            Id: statBlockId,
             Path: statBlock.Path,
-            Id: statBlock.Id,
             Player: statBlock.Player
         };
 
         this.statBlock = { ...StatBlock.Default(), ...statBlock };
-        
+
         this.JsonStatBlock(this.getAsJSON(statBlock));
         this.EditableStatBlock(this.makeEditable(this.statBlock));
 
@@ -40,11 +42,8 @@ export class StatBlockEditor {
     }
 
     private getAsJSON = (statBlock: StatBlock): string => {
-        delete statBlock.Id;
-        delete statBlock.Path;
-        delete statBlock.Version;
-        delete statBlock.Player;
-        return JSON.stringify(statBlock, null, 2);
+        const partialStatBlock = _.omit(statBlock, ["Id", "Path", "Version", "Player"]);
+        return JSON.stringify(partialStatBlock, null, 2);
     }
 
     private makeEditable = (statBlock: StatBlock) => {
@@ -52,7 +51,7 @@ export class StatBlockEditor {
         let modifierLists = ["Saves", "Skills"];
         let traitLists = ["Traits", "Actions", "Reactions", "LegendaryActions"];
 
-        let observableStatBlock = ko["mapping"].fromJS(this.statBlock);
+        let observableStatBlock = koMapping.fromJS(this.statBlock);
 
         let makeRemovableArrays = (arrayNames: string[], makeEmptyValue: () => any) => {
             for (let arrayName of arrayNames) {
@@ -105,7 +104,7 @@ export class StatBlockEditor {
                 }
                 editableStatBlock[key].Value(acInt);
             }
-            
+
             if (key == "InitiativeModifier") {
                 let initInt = parseInt(editableStatBlock[key]());
                 if (isNaN(initInt)) {
@@ -141,17 +140,20 @@ export class StatBlockEditor {
                 alert(`Couldn't parse JSON from advanced editor.`);
                 return;
             }
+            
             $.extend(editedStatBlock, statBlockFromJSON);
+
+            editedStatBlock.Id = this.preservedProperties.Id;
+            editedStatBlock.Path = this.preservedProperties.Path;
+            editedStatBlock.Player = this.preservedProperties.Player;
+            editedStatBlock.Version = StatBlock.Default().Version;
         }
         if (this.EditorType() === "basic") {
             $.extend(editedStatBlock, this.unMakeEditable(this.EditableStatBlock()));
         }
 
-        editedStatBlock.Id = this.preservedProperties.Id;
-        editedStatBlock.Path = this.preservedProperties.Path;
-        editedStatBlock.Player = this.preservedProperties.Player;
-        editedStatBlock.Version = StatBlock.Default().Version;
-        
+
+
         this.saveCallback(editedStatBlock);
         this.EditableStatBlock(null);
     }
@@ -165,16 +167,6 @@ export class StatBlockEditor {
 
     public RevertStatBlock = () => {
         this.EditableStatBlock(null);
-    }
-
-    private parseInt: (value, defaultValue?: number) => number = (value, defaultValue: number = null) => {
-        if (/^(\-|\+)?([0-9]+|Infinity)$/.test(value)) {
-            return Number(value);
-        }
-        if (defaultValue !== null) {
-            return defaultValue;
-        }
-        return NaN;
     }
 }
 

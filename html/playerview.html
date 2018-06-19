@@ -19,6 +19,11 @@
 </head>
 
 <body id="playerview">
+
+    <div class="modal-blur combatant-portrait" data-bind="visible: imageModal().Visible, click: CloseImageModal()">
+        <img class="combatant-portrait-image" data-bind="attr:{src: imageModal().URL}">
+        <div class="combatant-portrait-caption" data-bind="html: imageModal().Caption"></div>
+    </div>
     <!-- ko with: combatantSuggestor -->
     <div class="modal-blur" data-bind="visible: SuggestionVisible, click: Close"></div>
     <div class="damage-suggestion" data-bind="
@@ -47,9 +52,14 @@
         <div class="initiative">
             <span class="fa" data-bind="css: stateIcon, attr: { title: stateTip }"></span>
         </div>
+        <div class="portrait" data-bind="visible: hasImages"></div>
         <div class="name">Combatant</div>
-        <div class="hp"><span class="fa fa-heart"></span></div>
-        <div class="tags"><span class="fa fa-tag"></span></div>
+        <div class="hp">
+            <span class="fa fa-heart"></span>
+        </div>
+        <div class="tags">
+            <span class="fa fa-tag"></span>
+        </div>
     </div>
     <ul class="combatants">
         <!-- ko foreach: combatants -->
@@ -66,7 +76,9 @@
     <!-- ko if: (roundCounterVisible() || turnTimerVisible()) -->
     <div class="combat-footer">
         <span class="turn-timer" data-bind="visible: turnTimerVisible, text: turnTimer.Readout"></span>
-        <span class="round-counter" data-bind="visible: roundCounterVisible">Current Round: <span data-bind="text: roundCounter"></span></span>
+        <span class="round-counter" data-bind="visible: roundCounterVisible">Current Round:
+            <span data-bind="text: roundCounter"></span>
+        </span>
     </div>
     <!-- /ko -->
     <script type="text/javascript" src="/main.js"></script>

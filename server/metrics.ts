@@ -1,6 +1,6 @@
 import express = require("express");
-
 import KeenTracking = require("keen-tracking");
+
 const keenProjectId = process.env.KEEN_PROJECT_ID || "";
 const keenWriteKey = process.env.KEEN_WRITE_KEY || "";
 
@@ -45,7 +45,7 @@ const addons = [
     }
 ];
 
-export default function (app: express.Application) {
+export function configureMetricsRoutes(app: express.Application) {
     const keenClient = new KeenTracking({
         projectId: keenProjectId,
         writeKey: keenWriteKey
@@ -56,14 +56,27 @@ export default function (app: express.Application) {
             return res.status(501).send("No metrics pipeline configured.");
         }
 
+        let session = req.session;
+        if (session === undefined) {
+            throw "Session is undefined.";
+        }
+
         const eventName = req.params.eventName;
         const eventData = req.body || {};
-        eventData.sessionId = req.session.id;
-        eventData.userId = req.session.userId || null;
-        eventData.ipAddress = "${keen.ip}";
+        eventData.sessionId = session.id;
+        eventData.userId = session.userId || null;
+        eventData.ipAddress = req.ip;
         eventData.keen = { addons };
         keenClient.recordEvent(eventName, eventData);
 
         return res.sendStatus(200);
     });
+
+    if (!keenProjectId || !keenWriteKey) {
+        console.warn("Keen configuration variables not set.");
+        return;
+    }
+
+    /*expressKeen.configure({ client: { projectId: keenProjectId, writeKey: keenWriteKey } });
+    app.use(expressKeen.handleAll());*/
 }

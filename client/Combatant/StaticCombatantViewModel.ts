@@ -1,3 +1,4 @@
+import { env } from "../Environment";
 import { CurrentSettings } from "../Settings/Settings";
 import { Combatant } from "./Combatant";
 import { Tag } from "./Tag";
@@ -10,9 +11,11 @@ export interface StaticCombatantViewModel {
     Id: string;
     Tags: Tag[];
     IsPlayerCharacter: boolean;
+    ImageURL: string;
 }
 
 export function ToStaticViewModel(combatant: Combatant): StaticCombatantViewModel {
+    const sendImage = env.HasEpicInitiative;
     return {
         Name: GetName(combatant),
         Id: combatant.Id,
@@ -20,18 +23,22 @@ export function ToStaticViewModel(combatant: Combatant): StaticCombatantViewMode
         HPColor: GetHPColor(combatant),
         Initiative: combatant.Initiative(),
         IsPlayerCharacter: combatant.IsPlayerCharacter,
-        Tags: combatant.Tags(),
+        Tags: combatant.Tags().filter(t => t.Visible()),
+        ImageURL: sendImage && combatant.StatBlock().ImageURL,
     };
 }
 
 function GetHPDisplay(combatant: Combatant): string {
     let monsterHpVerbosity = CurrentSettings().PlayerView.MonsterHPVerbosity;
+    const maxHP = combatant.MaxHP(),
+        currentHP = combatant.CurrentHP(),
+        temporaryHP = combatant.TemporaryHP();
 
     if (combatant.IsPlayerCharacter || monsterHpVerbosity == "Actual HP") {
-        if (combatant.TemporaryHP()) {
-            return `${combatant.CurrentHP()}+${combatant.TemporaryHP()}/${combatant.MaxHP}`;
+        if (temporaryHP) {
+            return `${currentHP}+${temporaryHP}/${maxHP}`;
         } else {
-            return `${combatant.CurrentHP()}/${combatant.MaxHP}`;
+            return `${currentHP}/${maxHP}`;
         }
     }
 
@@ -40,20 +47,21 @@ function GetHPDisplay(combatant: Combatant): string {
     }
 
     if (monsterHpVerbosity == "Damage Taken") {
-        return (combatant.CurrentHP() - combatant.MaxHP).toString();
+        return (currentHP - maxHP).toString();
     }
 
-    if (combatant.CurrentHP() <= 0) {
+    if (currentHP <= 0) {
         return "<span class='defeatedHP'>Defeated</span>";
-    } else if (combatant.CurrentHP() < combatant.MaxHP / 2) {
+    } else if (currentHP < maxHP / 2) {
         return "<span class='bloodiedHP'>Bloodied</span>";
-    } else if (combatant.CurrentHP() < combatant.MaxHP) {
+    } else if (currentHP < maxHP) {
         return "<span class='hurtHP'>Hurt</span>";
     }
     return "<span class='healthyHP'>Healthy</span>";
 }
 
 function GetHPColor(combatant: Combatant) {
+    const maxHP = combatant.MaxHP(), currentHP = combatant.CurrentHP();
     let monsterHpVerbosity = CurrentSettings().PlayerView.MonsterHPVerbosity;
     if (!combatant.IsPlayerCharacter &&
         (monsterHpVerbosity == "Monochrome Label" ||
@@ -61,8 +69,8 @@ function GetHPColor(combatant: Combatant) {
             monsterHpVerbosity == "Damage Taken")) {
         return "auto";
     }
-    let green = Math.floor((combatant.CurrentHP() / combatant.MaxHP) * 170);
-    let red = Math.floor((combatant.MaxHP - combatant.CurrentHP()) / combatant.MaxHP * 170);
+    let green = Math.floor((currentHP / maxHP) * 170);
+    let red = Math.floor((maxHP - currentHP) / maxHP * 170);
     return "rgb(" + red + "," + green + ",0)";
 }
 

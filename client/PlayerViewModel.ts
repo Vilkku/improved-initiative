@@ -1,17 +1,27 @@
 import * as Color from "color";
+import * as ko from "knockout";
+
 import { PlayerView } from "../common/PlayerView";
 import { PlayerViewCustomStyles, PlayerViewSettings } from "../common/PlayerViewSettings";
+import { SavedEncounter } from "./../common/SavedEncounter";
 import { StaticCombatantViewModel } from "./Combatant/StaticCombatantViewModel";
-import { SavedEncounter } from "./Encounter/SavedEncounter";
 import { env } from "./Environment";
 import { CombatantSuggestor } from "./Player/CombatantSuggestor";
 import { InitiativeSuggestor } from "./Player/InitiativeSuggestor";
 import { TurnTimer } from "./Widgets/TurnTimer";
 
+export interface ImageModalState {
+    Visible: boolean;
+    URL: string;
+    Caption: string;
+    Timeout: any;
+    BlockAutoModal: boolean;
+}
+
 export class PlayerViewModel {
     private additionalUserCSS: HTMLStyleElement;
     private userStyles: HTMLStyleElement;
-    private combatants: KnockoutObservableArray<StaticCombatantViewModel> = ko.observableArray<StaticCombatantViewModel>([]);
+    public combatants: KnockoutObservableArray<StaticCombatantViewModel> = ko.observableArray<StaticCombatantViewModel>([]);
     private activeCombatant: KnockoutObservable<StaticCombatantViewModel> = ko.observable<StaticCombatantViewModel>();
     private encounterId = env.EncounterId;
     private roundCounter = ko.observable();
@@ -19,17 +29,32 @@ export class PlayerViewModel {
     private turnTimer = new TurnTimer();
     private turnTimerVisible = ko.observable(false);
     private allowSuggestions = ko.observable(false);
+    private displayPortraits = ko.observable(false);
+    private splashPortraits = false;
 
     private encounterState: KnockoutObservable<"active" | "inactive"> = ko.observable<"active" | "inactive">("inactive");
     private stateIcon = ko.computed(() => this.encounterState() === "active" ? "fa-play" : "fa-pause");
     private stateTip = ko.computed(() => this.encounterState() === "active" ? "Encounter Active" : "Encounter Inactive");
 
-    private socket: SocketIOClient.Socket = io();
+    public imageModal = ko.observable<ImageModalState>({
+        Visible: false,
+        URL: "",
+        Caption: "",
+        Timeout: null,
+        BlockAutoModal: false,
+    });
+
+    protected hasImages = ko.computed(() => {
+        const displayPortraits = this.displayPortraits();
+        const combatants = this.combatants();
+
+        return displayPortraits && combatants.some(c => c.ImageURL.length > 0);
+    });
 
     private combatantSuggestor = new CombatantSuggestor(this.socket, this.encounterId);
     private InitiativeSuggestor = new InitiativeSuggestor(this.socket, this.encounterId);
 
-    constructor() {
+    constructor(private socket: SocketIOClient.Socket) {
         this.socket.on("encounter updated", (encounter: SavedEncounter<StaticCombatantViewModel>) => {
             this.LoadEncounter(encounter);
         });
@@ -44,8 +69,17 @@ export class PlayerViewModel {
 
     public LoadEncounterFromServer = (encounterId: string) => {
         $.ajax(`../playerviews/${encounterId}`).done((playerView: PlayerView) => {
-            this.LoadEncounter(playerView.encounterState);
-            this.LoadSettings(playerView.settings);
+            if (!playerView) {
+                return;
+            }
+
+            if (playerView.encounterState) {
+                this.LoadEncounter(playerView.encounterState);
+            }
+
+            if (playerView.settings) {
+                this.LoadSettings(playerView.settings);
+            }
         });
     }
 
@@ -59,23 +93,35 @@ export class PlayerViewModel {
         this.additionalUserCSS = headElement.appendChild(additionalCSSElement);
     }
 
-    private LoadSettings(settings: PlayerViewSettings) {
+    public LoadSettings(settings: PlayerViewSettings) {
         this.userStyles.innerHTML = CSSFrom(settings.CustomStyles);
         this.additionalUserCSS.innerHTML = settings.CustomCSS;
         this.allowSuggestions(settings.AllowPlayerSuggestions);
         this.turnTimerVisible(settings.DisplayTurnTimer);
         this.roundCounterVisible(settings.DisplayRoundCounter);
+        this.displayPortraits(settings.DisplayPortraits);
+        this.splashPortraits = settings.SplashPortraits;
     }
 
-    private LoadEncounter = (encounter: SavedEncounter<StaticCombatantViewModel>) => {
+    public LoadEncounter = (encounter: SavedEncounter<StaticCombatantViewModel>) => {
         this.combatants(encounter.Combatants);
         this.roundCounter(encounter.RoundCounter);
-        if (encounter.ActiveCombatantId != (this.activeCombatant() || { Id: -1 }).Id) {
-            this.turnTimer.Reset();
+        if (!encounter.ActiveCombatantId) {
+            return;
         }
-        if (encounter.ActiveCombatantId) {
-            this.activeCombatant(this.combatants().filter(c => c.Id == encounter.ActiveCombatantId).pop());
+        const newCombatantTurn = !this.activeCombatant() || encounter.ActiveCombatantId != this.activeCombatant().Id;
+        if (newCombatantTurn) {
+            this.turnTimer.Reset();
+            const active = this.combatants().filter(c => c.Id == encounter.ActiveCombatantId).pop();
+            this.activeCombatant(active);
             setTimeout(this.ScrollToActiveCombatant, 1);
+            if (this.splashPortraits && active.ImageURL && !this.imageModal().BlockAutoModal) {
+                this.SplashPortrait(encounter.ActiveCombatantId, false);
+                this.imageModal({
+                    ...this.imageModal(),
+                    Timeout: setTimeout(this.CloseImageModal, 5000),
+                });
+            }
         }
 
         if (encounter.ActiveCombatantId) {
@@ -92,18 +138,45 @@ export class PlayerViewModel {
         }
     }
 
-    private ShowSuggestion = (combatant: StaticCombatantViewModel) => {
+    protected ShowSuggestion = (combatant: StaticCombatantViewModel) => {
         if (!this.allowSuggestions()) {
             return;
         }
         this.combatantSuggestor.Show(combatant);
     }
 
-    ShowInitiativeSuggestion = (combatant: StaticCombatantViewModel) => {
+    protected ShowInitiativeSuggestion = (combatant: StaticCombatantViewModel) => {
         if (this.encounterState() === 'inactive') {
             return;
         }
         this.InitiativeSuggestor.Show(combatant);
+    }
+
+    private SplashPortrait = (SelectedId: string, didClick: boolean) => {
+        const imageModal = this.imageModal();
+        const combatant = this.combatants().filter(c => c.Id == SelectedId).pop();
+        if (didClick) {
+            imageModal.BlockAutoModal = true;
+            imageModal.Caption = "";
+        } else {
+            imageModal.Caption = "<p>Start of Turn:</p>";
+        }
+
+        const tagsCaption = combatant.Tags.map(t => t.Text).join(" ");
+        imageModal.Caption += `<p>${combatant.Name} (${combatant.HPDisplay}) ${tagsCaption}</p>`;
+
+        imageModal.URL = combatant.ImageURL;
+        imageModal.Visible = true;
+
+        this.imageModal(imageModal);
+    }
+
+    private CloseImageModal = () => {
+        const imageModal = this.imageModal();
+        imageModal.Visible = false;
+        imageModal.BlockAutoModal = false;
+        clearTimeout(imageModal.Timeout);
+        this.imageModal(imageModal);
     }
 }
 

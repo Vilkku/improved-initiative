@@ -1,5 +1,5 @@
-import { Listable } from "../../common/Listable";
-import { probablyUniqueString } from "../../common/Toolbox";
+import { Listable } from "./Listable";
+import { probablyUniqueString } from "./Toolbox";
 
 export interface AbilityScores {
     Str: number;
@@ -50,6 +50,7 @@ export interface StatBlock extends Listable {
     LegendaryActions: NameAndContent[];
     Description: string;
     Player: string;
+    ImageURL: string;
 }
 
 export class StatBlock {
@@ -74,7 +75,8 @@ export class StatBlock {
         LegendaryActions: [],
         Description: "",
         Player: "",
-        Version: process.env.VERSION,
+        Version: process.env.VERSION || "0.0.0",
+        ImageURL: "",
     })
 
     public static readonly AbilityNames = ["Str", "Dex", "Con", "Cha", "Int", "Wis"];

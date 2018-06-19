@@ -1,15 +1,31 @@
 import * as React from "react";
-import { StatBlock } from "../StatBlock/StatBlock";
+import { StatBlock } from "../../common/StatBlock";
 import { StatBlockTextEnricher } from "../StatBlock/StatBlockTextEnricher";
 
 interface StatBlockProps {
     statBlock: StatBlock;
     enricher: StatBlockTextEnricher;
+    displayMode: "default" | "active";
 }
 
-interface StatBlockState { }
+interface StatBlockState {
+    portraitSize: "thumbnail" | "full";
+ }
 
 export class StatBlockComponent extends React.Component<StatBlockProps, StatBlockState> {
+    constructor(props) {
+        super(props);
+        this.state = { portraitSize: "thumbnail" };
+    }
+
+    private togglePortraitSize = () => {
+        if (this.state.portraitSize == "thumbnail") {
+            this.setState({ portraitSize: "full" });
+        } else {
+            this.setState({ portraitSize: "thumbnail" });
+        }
+    }
+
     public render() {
         const statBlock = this.props.statBlock;
         const enricher = this.props.enricher;
@@ -35,13 +51,27 @@ export class StatBlockComponent extends React.Component<StatBlockProps, StatBloc
             { name: "Legendary Actions", data: statBlock.LegendaryActions },
         ];
 
-        return <div className="c-statblock">
-            <h3 className="Name">{statBlock.Name}</h3>
+        const maybeLargePortrait = statBlock.ImageURL && this.state.portraitSize == "full" &&
+            <img className={`portrait-${this.state.portraitSize}`} onClick={this.togglePortraitSize} src={statBlock.ImageURL} />;
+        
+        let titleLine = <h3 className="Name">{statBlock.Name}</h3>;
+
+        if (statBlock.ImageURL && this.state.portraitSize == "thumbnail") {
+            titleLine = <h3 className="Name">
+                {statBlock.Name}
+                <img className={`portrait-${this.state.portraitSize}`} onClick={this.togglePortraitSize} src={statBlock.ImageURL} />
+            </h3>;
+        }
+
+        const headerEntries = <React.Fragment>
+            {maybeLargePortrait}
+            {titleLine}
             <div className="Source">{statBlock.Source}</div>
             <div className="Type">{statBlock.Type}</div>
-
             <hr />
+        </React.Fragment>;
 
+        const statEntries = <React.Fragment>
             <div className="AC">
                 <span className="stat-label">Armor Class</span>
                 <span>{statBlock.AC.Value}</span>
@@ -70,6 +100,8 @@ export class StatBlockComponent extends React.Component<StatBlockProps, StatBloc
                     </div>;
                 })}
             </div>
+
+            <hr />
 
             <div className="modifiers">
                 {modifierTypes
@@ -105,23 +137,36 @@ export class StatBlockComponent extends React.Component<StatBlockProps, StatBloc
             }
 
             <hr />
+        </React.Fragment>;
 
-            {powerTypes
-                .filter(powerType => powerType.data.length > 0)
-                .map(powerType =>
-                    <div key={powerType.name} className={powerType.name}>
-                        <h4 className="stat-label">{powerType.name}</h4>
-                        {powerType.data.map((power, j) =>
-                            <div key={j + power.Name}>
-                                <span className="stat-label">{power.Name}</span>
-                                {power.Usage && <span className="stat-label">{power.Usage}</span>}
-                                <span className="power-content">{enricher.EnrichText(power.Content)}</span>
-                            </div>
-                        )}
-                    </div>
-                )}
+        const actionEntries = powerTypes
+            .filter(powerType => powerType.data.length > 0)
+            .map(powerType =>
+                <div key={powerType.name} className={powerType.name}>
+                    <h4 className="stat-label">{powerType.name}</h4>
+                    {powerType.data.map((power, j) =>
+                        <div key={j + power.Name}>
+                            <span className="stat-label">{power.Name}</span>
+                            {power.Usage && <span className="stat-label">{power.Usage}</span>}
+                            <span className="power-content">{enricher.EnrichText(power.Content)}</span>
+                        </div>
+                    )}
+                    <hr />
+                </div>
+        );
+        
+        const description = statBlock.Description && <div className="Description">{enricher.EnrichText(statBlock.Description)}</div>;
 
-            {statBlock.Description && <div className="Description">{enricher.EnrichText(statBlock.Description)}</div>}
+        let innerEntries;
+        if(this.props.displayMode == "active"){
+            innerEntries = <React.Fragment>{actionEntries}{statEntries}</React.Fragment>;
+        } else {
+            innerEntries = <React.Fragment>{statEntries}{actionEntries}</React.Fragment>;
+        }
+        return <div className="c-statblock">
+            {headerEntries}
+            {innerEntries}
+            {description}
         </div>;
     }
 }

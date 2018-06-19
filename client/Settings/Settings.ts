@@ -1,3 +1,6 @@
+import * as ko from "knockout";
+import * as _ from "lodash";
+
 import { PlayerViewSettings } from "../../common/PlayerViewSettings";
 import { Command } from "../Commands/Command";
 import { CommandSetting } from "../Commands/CommandSetting";
@@ -61,6 +64,8 @@ function getDefaultSettings(): Settings {
             HideMonstersOutsideEncounter: false,
             DisplayRoundCounter: false,
             DisplayTurnTimer: false,
+            DisplayPortraits: false,
+            SplashPortraits: false,
             CustomCSS: "",
             CustomStyles: {
                 combatantBackground: "",
@@ -73,7 +78,7 @@ function getDefaultSettings(): Settings {
                 backgroundUrl: "",
             }
         },
-        Version: process.env.VERSION
+        Version: process.env.VERSION || "0.0.0"
     };
 }
 
@@ -102,13 +107,12 @@ function getLegacySettings(): Settings {
             DisplayDifficulty: getLegacySetting<boolean>("DisplayDifficulty", false)
         },
         PlayerView: {
+            ...defaultSettings.PlayerView,
             AllowPlayerSuggestions: getLegacySetting<boolean>("PlayerViewAllowPlayerSuggestions", false),
             MonsterHPVerbosity: getLegacySetting<string>("MonsterHPVerbosity", "Colored Label"),
             HideMonstersOutsideEncounter: getLegacySetting<boolean>("HideMonstersOutsideEncounter", false),
             DisplayRoundCounter: getLegacySetting<boolean>("PlayerViewDisplayRoundCounter", false),
             DisplayTurnTimer: getLegacySetting<boolean>("PlayerViewDisplayTurnTimer", false),
-            CustomCSS: defaultSettings.PlayerView.CustomCSS,
-            CustomStyles: defaultSettings.PlayerView.CustomStyles
         },
         Version: defaultSettings.Version
     };
@@ -126,15 +130,13 @@ function configureCommands(newSettings: Settings, commands: Command[]) {
         }
     });
 
-    newSettings.Commands.forEach(b => {
-        const matchedCommands = commands.filter(c => c.Description == b.Name);
-        if (matchedCommands.length !== 1) {
-            console.warn(`Couldn't bind command: ${b.Name}`);
-            return;
+    commands.forEach(command => {
+        const commandSetting = _.find(newSettings.Commands, c => c.Name == command.Description);
+        if (commandSetting) {
+            command.KeyBinding = commandSetting.KeyBinding;
+            command.ShowOnActionBar(commandSetting.ShowOnActionBar);
         }
-        Mousetrap.bind(b.KeyBinding, matchedCommands[0].ActionBinding);
-        matchedCommands[0].KeyBinding = b.KeyBinding;
-        matchedCommands[0].ShowOnActionBar(b.ShowOnActionBar);
+        Mousetrap.bind(command.KeyBinding, command.ActionBinding);
     });
 }
 
@@ -164,9 +166,17 @@ function updateToSemanticVersionIsRequired(settingsVersion: string, targetVersio
 
 function updateSettings(settings: any): Settings {
     const defaultSettings = getDefaultSettings();
+
+    if (!settings.PlayerView) {
+        settings.PlayerView = defaultSettings.PlayerView;
+    }
+
+    if (!settings.PlayerView.CustomStyles) {
+        settings.PlayerView.CustomStyles = defaultSettings.PlayerView.CustomStyles;
+    }
+
     if (updateToSemanticVersionIsRequired(settings.Version, "1.2.0")) {
         settings.PlayerView.CustomCSS = defaultSettings.PlayerView.CustomCSS;
-        settings.PlayerView.CustomStyles = defaultSettings.PlayerView.CustomStyles;
     }
 
     if (updateToSemanticVersionIsRequired(settings.Version, "1.3.0")) {

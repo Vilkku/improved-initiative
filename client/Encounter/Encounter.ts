@@ -1,3 +1,9 @@
+import * as ko from "knockout";
+import * as _ from "lodash";
+import React = require("react");
+
+import { SavedCombatant, SavedEncounter } from "../../common/SavedEncounter";
+import { StatBlock } from "../../common/StatBlock";
 import { probablyUniqueString } from "../../common/Toolbox";
 import { AccountClient } from "../Account/AccountClient";
 import { Combatant } from "../Combatant/Combatant";
@@ -6,32 +12,35 @@ import { StaticCombatantViewModel, ToStaticViewModel } from "../Combatant/Static
 import { Tag } from "../Combatant/Tag";
 import { InitiativePrompt } from "../Commands/Prompts/InitiativePrompt";
 import { PromptQueue } from "../Commands/Prompts/PromptQueue";
+import { StatBlockComponent } from "../Components/StatBlock";
 import { env } from "../Environment";
 import { PlayerViewClient } from "../Player/PlayerViewClient";
-import { DefaultRules, IRules } from "../Rules/Rules";
+import { IRules } from "../Rules/Rules";
 import { CurrentSettings } from "../Settings/Settings";
-import { StatBlock } from "../StatBlock/StatBlock";
-import { Metrics } from "../Utility/Metrics";
+import { StatBlockTextEnricher } from "../StatBlock/StatBlockTextEnricher";
 import { Store } from "../Utility/Store";
 import { DifficultyCalculator, EncounterDifficulty } from "../Widgets/DifficultyCalculator";
 import { TurnTimer } from "../Widgets/TurnTimer";
-import { SavedCombatant, SavedEncounter } from "./SavedEncounter";
 
 export class Encounter {
-    private playerViewClient: PlayerViewClient;
     constructor(
         promptQueue: PromptQueue,
-        private Socket: SocketIOClient.Socket,
+        private playerViewClient: PlayerViewClient,
         private buildCombatantViewModel: (c: Combatant) => CombatantViewModel,
-        private handleRemoveCombatantViewModels: (vm: CombatantViewModel []) => void
+        private handleRemoveCombatantViewModels: (vm: CombatantViewModel[]) => void,
+        public Rules: IRules,
+        private statBlockTextEnricher: StatBlockTextEnricher
     ) {
-        this.Rules = new DefaultRules();
         this.CombatantCountsByName = ko.observable({});
         this.ActiveCombatant = ko.observable<Combatant>();
         this.ActiveCombatantStatBlock = ko.pureComputed(() => {
             return this.ActiveCombatant()
-                ? this.ActiveCombatant().StatBlock()
-                : StatBlock.Default();
+                ? React.createElement(StatBlockComponent, {
+                    statBlock: this.ActiveCombatant().StatBlock(),
+                    enricher: this.statBlockTextEnricher,
+                    displayMode: "active"
+                })
+                : null;
         });
 
         this.Difficulty = ko.pureComputed(() => {
@@ -52,16 +61,13 @@ export class Encounter {
         if (autosavedEncounter) {
             this.LoadSavedEncounter(autosavedEncounter, true);
         }
-
-        this.playerViewClient = new PlayerViewClient(this.Socket);
     }
 
-    public Rules: IRules;
     public TurnTimer = new TurnTimer();
     public Combatants = ko.observableArray<Combatant>([]);
     public CombatantCountsByName: KnockoutObservable<{ [name: string]: number }>;
     public ActiveCombatant: KnockoutObservable<Combatant>;
-    public ActiveCombatantStatBlock: KnockoutComputed<StatBlock>;
+    public ActiveCombatantStatBlock: KnockoutComputed<React.ReactElement<any>>;
     public Difficulty: KnockoutComputed<EncounterDifficulty>;
 
     public State: KnockoutObservable<"active" | "inactive"> = ko.observable<"active" | "inactive">("inactive");
@@ -71,14 +77,36 @@ export class Encounter {
     public RoundCounter: KnockoutObservable<number> = ko.observable(0);
     public EncounterId = env.EncounterId;
 
-    public SortByInitiative = (stable = false) => {
-        this.Combatants.sort((l, r) => {
-            if (stable) {
-                return r.Initiative() - l.Initiative();
-            }
+    private getGroupBonusForCombatant(combatant: Combatant) {
+        if (combatant.InitiativeGroup() == null) {
+            return combatant.InitiativeBonus;
+        }
 
-            return (r.Initiative() - l.Initiative()) || (r.InitiativeBonus - l.InitiativeBonus);
-        });
+        const groupBonuses = this.Combatants()
+            .filter(c => c.InitiativeGroup() == combatant.InitiativeGroup())
+            .map(c => c.InitiativeBonus);
+
+        return _.max(groupBonuses) || combatant.InitiativeBonus;
+    }
+
+    private getCombatantSortIteratees(stable: boolean): ((c: Combatant) => number | string )[] {
+        if (stable) {
+            return [c => -c.Initiative()];
+        } else {
+            return [
+                c => -c.Initiative(),
+                c => -this.getGroupBonusForCombatant(c),
+                c => -c.InitiativeBonus,
+                c => c.InitiativeGroup(),
+                c => c.StatBlock().Name,
+                c => c.IndexLabel
+            ];
+        }
+    }
+
+    public SortByInitiative = (stable = false) => {
+        const sortedCombatants = _.sortBy(this.Combatants(), this.getCombatantSortIteratees(stable));
+        this.Combatants(sortedCombatants);
         this.QueueEmitEncounter();
     }
 
@@ -126,6 +154,7 @@ export class Encounter {
             combatant.Hidden(true);
         }
         this.Combatants.push(combatant);
+
         const viewModel = this.buildCombatantViewModel(combatant);
 
         if (this.State() === "active") {
@@ -133,8 +162,6 @@ export class Encounter {
         }
 
         this.QueueEmitEncounter();
-
-        Metrics.TrackEvent("CombatantAdded", { Name: statBlockJson.Name });
 
         return combatant;
     }
@@ -200,28 +227,46 @@ export class Encounter {
     public NextTurn = () => {
         const activeCombatant = this.ActiveCombatant();
 
+        this.durationTags
+            .filter(t => t.HasDuration && t.DurationCombatantId == activeCombatant.Id && t.DurationTiming == "EndOfTurn")
+            .forEach(t => t.Decrement());
+
         let nextIndex = this.Combatants().indexOf(activeCombatant) + 1;
         if (nextIndex >= this.Combatants().length) {
             nextIndex = 0;
             this.RoundCounter(this.RoundCounter() + 1);
-            this.durationTags.forEach(t => t.Decrement());
         }
 
         const nextCombatant = this.Combatants()[nextIndex];
 
         this.ActiveCombatant(nextCombatant);
+
+        this.durationTags
+            .filter(t => t.HasDuration && t.DurationCombatantId == nextCombatant.Id && t.DurationTiming == "StartOfTurn")
+            .forEach(t => t.Decrement());
+
         this.TurnTimer.Reset();
         this.QueueEmitEncounter();
     }
 
     public PreviousTurn = () => {
-        let previousIndex = this.Combatants().indexOf(this.ActiveCombatant()) - 1;
+        const activeCombatant = this.ActiveCombatant();
+        this.durationTags
+            .filter(t => t.HasDuration && t.DurationCombatantId == activeCombatant.Id && t.DurationTiming == "StartOfTurn")
+            .forEach(t => t.Increment());
+
+        let previousIndex = this.Combatants().indexOf(activeCombatant) - 1;
         if (previousIndex < 0) {
             previousIndex = this.Combatants().length - 1;
             this.RoundCounter(this.RoundCounter() - 1);
-            this.durationTags.forEach(t => t.Increment());
         }
-        this.ActiveCombatant(this.Combatants()[previousIndex]);
+
+        const previousCombatant = this.Combatants()[previousIndex];
+        this.ActiveCombatant(previousCombatant);
+        this.durationTags
+            .filter(t => t.HasDuration && t.DurationCombatantId == previousCombatant.Id && t.DurationTiming == "EndOfTurn")
+            .forEach(t => t.Increment());
+
         this.QueueEmitEncounter();
     }
 
@@ -244,7 +289,7 @@ export class Encounter {
                 return {
                     Id: c.Id,
                     StatBlock: c.StatBlock(),
-                    MaxHP: c.MaxHP,
+                    MaxHP: c.MaxHP(),
                     CurrentHP: c.CurrentHP(),
                     TemporaryHP: c.TemporaryHP(),
                     Initiative: c.Initiative(),
@@ -259,7 +304,8 @@ export class Encounter {
                     })),
                     Hidden: c.Hidden(),
                     InterfaceVersion: process.env.VERSION,
-                    NameHidden: c.NameHidden()
+                    ImageURL: c.StatBlock().ImageURL,
+                    NameHidden: c.NameHidden(),
                 };
             }),
             Version: process.env.VERSION

@@ -1,3 +1,5 @@
+import * as ko from "knockout";
+
 import { Prompt } from "./Prompt";
 
 export class PromptQueue {
@@ -6,13 +8,15 @@ export class PromptQueue {
     public Prompts = ko.observableArray<Prompt>();
 
     public Add = (prompt: Prompt) => {
-        prompt.SetDequeueCallback(() => {
-            this.Prompts.remove(prompt);
-            if (this.HasPrompt()) {
-                $(this.Prompts()[0].InputSelector).first().select();
-            }
-        });
         this.Prompts.push(prompt);
+    }
+
+    public Resolve = (prompt: Prompt) => (form: HTMLFormElement) => {
+        prompt.Resolve(form);
+        this.Prompts.remove(prompt);
+        if (this.HasPrompt()) {
+            $(this.Prompts()[0].InputSelector).first().select();
+        }
     }
 
     public UpdateDom = (element: HTMLFormElement, valueAccessor, allBindings, viewModel, bindingContext) => {

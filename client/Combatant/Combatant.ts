@@ -1,9 +1,11 @@
+import * as ko from "knockout";
+
+import { SavedCombatant } from "../../common/SavedEncounter";
+import { AbilityScores, StatBlock } from "../../common/StatBlock";
 import { probablyUniqueString } from "../../common/Toolbox";
 import { Encounter } from "../Encounter/Encounter";
-import { SavedCombatant } from "../Encounter/SavedEncounter";
 import { Dice } from "../Rules/Rules";
 import { CurrentSettings } from "../Settings/Settings";
-import { AbilityScores, StatBlock } from "../StatBlock/StatBlock";
 import { Metrics } from "../Utility/Metrics";
 import { Tag } from "./Tag";
 
@@ -12,7 +14,7 @@ export interface Combatant {
     Encounter: Encounter;
     Alias: KnockoutObservable<string>;
     IndexLabel: number;
-    MaxHP: number;
+    MaxHP: KnockoutComputed<number>;
     CurrentHP: KnockoutObservable<number>;
     TemporaryHP: KnockoutObservable<number>;
     AC: number;
@@ -42,6 +44,8 @@ export class Combatant implements Combatant {
 
         this.StatBlock(statBlock);
 
+        this.MaxHP = ko.computed(() => this.StatBlock().HP.Value);
+
         this.processStatBlock(statBlock);
 
         this.StatBlock.subscribe((newStatBlock) => {
@@ -49,7 +53,7 @@ export class Combatant implements Combatant {
             statBlock = newStatBlock;
         });
 
-        this.CurrentHP = ko.observable(this.MaxHP);
+        this.CurrentHP = ko.observable(this.MaxHP());
 
         if (savedCombatant) {
             this.processSavedCombatant(savedCombatant);
@@ -68,7 +72,6 @@ export class Combatant implements Combatant {
             }
         });
     }
-
     public Id = probablyUniqueString();
     public Alias = ko.observable("");
     public TemporaryHP = ko.observable(0);
@@ -80,7 +83,7 @@ export class Combatant implements Combatant {
     public NameHidden = ko.observable(false);
 
     public IndexLabel: number;
-    public MaxHP: number;
+    public MaxHP: KnockoutComputed<number>;
     public CurrentHP: KnockoutObservable<number>;
     public PlayerDisplayHP: KnockoutComputed<string>;
     public AC: number;
@@ -88,14 +91,12 @@ export class Combatant implements Combatant {
     public InitiativeBonus: number;
     public ConcentrationBonus: number;
     public IsPlayerCharacter = false;
-
     private updatingGroup = false;
 
     private processStatBlock(newStatBlock: StatBlock, oldStatBlock?: StatBlock) {
         this.updateIndexLabel(oldStatBlock && oldStatBlock.Name);
         this.IsPlayerCharacter = newStatBlock.Player == "player";
         this.AC = newStatBlock.AC.Value;
-        this.MaxHP = newStatBlock.HP.Value;
         this.AbilityModifiers = this.calculateModifiers();
         if (!newStatBlock.InitiativeModifier) {
             newStatBlock.InitiativeModifier = 0;
@@ -103,6 +104,9 @@ export class Combatant implements Combatant {
         this.InitiativeBonus = this.AbilityModifiers.Dex + newStatBlock.InitiativeModifier || 0;
         this.ConcentrationBonus = this.AbilityModifiers.Con;
         this.setAutoInitiativeGroup();
+        if (oldStatBlock) {
+            this.Encounter.Combatants.notifySubscribers();
+        }
     }
 
     private processSavedCombatant(savedCombatant: SavedCombatant) {
@@ -205,8 +209,8 @@ export class Combatant implements Combatant {
         let currHP = this.CurrentHP();
 
         currHP += healing;
-        if (currHP > this.MaxHP) {
-            currHP = this.MaxHP;
+        if (currHP > this.MaxHP()) {
+            currHP = this.MaxHP();
         }
 
         this.CurrentHP(currHP);

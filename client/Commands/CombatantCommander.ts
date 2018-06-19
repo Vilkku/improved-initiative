@@ -1,10 +1,14 @@
+import * as ko from "knockout";
+import React = require("react");
+
 import { probablyUniqueString } from "../../common/Toolbox";
 import { Combatant } from "../Combatant/Combatant";
 import { CombatantViewModel } from "../Combatant/CombatantViewModel";
+import { StatBlockComponent } from "../Components/StatBlock";
 import { Dice, RollResult } from "../Rules/Rules";
 import { CurrentSettings } from "../Settings/Settings";
-import { StatBlock } from "../StatBlock/StatBlock";
 import { TrackerViewModel } from "../TrackerViewModel";
+import { Metrics } from "../Utility/Metrics";
 import { Store } from "../Utility/Store";
 import { BuildCombatantCommandList, Command } from "./Command";
 import { AcceptDamagePrompt } from "./Prompts/AcceptDamagePrompt";
@@ -40,12 +44,16 @@ export class CombatantCommander {
     public HasOneSelected = ko.pureComputed(() => this.SelectedCombatants().length === 1);
     public HasMultipleSelected = ko.pureComputed(() => this.SelectedCombatants().length > 1);
 
-    public StatBlock: KnockoutComputed<StatBlock> = ko.pureComputed(() => {
+    public StatBlock = ko.pureComputed(() => {
         let selectedCombatants = this.SelectedCombatants();
         if (selectedCombatants.length == 1) {
-            return selectedCombatants[0].Combatant.StatBlock();
+            return React.createElement(StatBlockComponent, {
+                statBlock: selectedCombatants[0].Combatant.StatBlock(),
+                enricher: this.tracker.StatBlockTextEnricher,
+                displayMode: "default"
+            });
         } else {
-            return StatBlock.Default();
+            return null;
         }
     });
 
@@ -121,6 +129,7 @@ export class CombatantCommander {
         }
 
         this.tracker.EventLog.AddEvent(`${deletedCombatantNames.join(", ")} removed from encounter.`);
+        Metrics.TrackEvent("CombatantsRemoved", { Names: deletedCombatantNames });
 
         this.tracker.Encounter.QueueEmitEncounter();
     }
@@ -201,6 +210,7 @@ export class CombatantCommander {
                 if (thp) {
                     selectedCombatants.forEach(c => c.ApplyTemporaryHP(thp));
                     this.tracker.EventLog.AddEvent(`${thp} temporary hit points granted to ${combatantNames}.`);
+                    Metrics.TrackEvent("TemporaryHPAdded", { Amount: thp });
                     this.tracker.Encounter.QueueEmitEncounter();
                 }
             });
@@ -236,6 +246,7 @@ export class CombatantCommander {
         this.tracker.Encounter.CleanInitiativeGroups();
 
         this.tracker.Encounter.SortByInitiative();
+        Metrics.TrackEvent("InitiativeLinked");
     }
 
     public LinkInitiative = () => {
@@ -277,9 +288,9 @@ export class CombatantCommander {
 
     public EditStatBlock = () => {
         if (this.SelectedCombatants().length == 1) {
-            let selectedCombatant = this.SelectedCombatants()[0];
-            this.tracker.StatBlockEditor.EditStatBlock(null, this.StatBlock(), (newStatBlock) => {
-                selectedCombatant.Combatant.StatBlock(newStatBlock);
+            let selectedCombatant = this.SelectedCombatants()[0].Combatant;
+            this.tracker.StatBlockEditor.EditStatBlock(null, selectedCombatant.StatBlock(), (newStatBlock) => {
+                selectedCombatant.StatBlock(newStatBlock);
                 this.tracker.Encounter.QueueEmitEncounter();
             }, () => {
                 this.Remove();
@@ -292,6 +303,7 @@ export class CombatantCommander {
         const diceRoll = Dice.RollDiceExpression(diceExpression);
         this.latestRoll = diceRoll;
         const prompt = new DefaultPrompt(`Rolled: ${diceExpression} -> ${diceRoll.FormattedString} <input class='response' type='number' value='${diceRoll.Total}' />`);
+        Metrics.TrackEvent("DiceRolled", { Expression: diceExpression, Result: diceRoll.FormattedString });
         this.tracker.PromptQueue.Add(prompt);
     }
 }

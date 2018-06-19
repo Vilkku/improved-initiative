@@ -1,5 +1,9 @@
 import { Store } from "./Store";
 
+interface EventData {
+    [key: string]: any;
+}
+
 export class Metrics {
     public static TrackLoad(): void {
         const counts = {
@@ -12,7 +16,11 @@ export class Metrics {
         Metrics.TrackEvent("AppLoad", counts);
     }
 
-    public static TrackEvent(name: string, data: any = {}): void {
+    public static TrackEvent(name: string, data: EventData = {}): void {
+        if (!Store.Load(Store.User, "AllowTracking")) {
+            return;
+        }
+
         console.log(`Event ${name}`);
         if (data !== {}) {
             console.table(data);

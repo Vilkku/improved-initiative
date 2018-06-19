@@ -1,7 +1,7 @@
-import { Listable } from "../../common/Listable";
-import { probablyUniqueString } from "../../common/Toolbox";
-import { DurationTiming } from "../Combatant/DurationTiming";
-import { StatBlock } from "../StatBlock/StatBlock";
+import { DurationTiming } from "./DurationTiming";
+import { Listable } from "./Listable";
+import { StatBlock } from "./StatBlock";
+import { probablyUniqueString } from "./Toolbox";
 
 export interface SavedCombatant {
     Id: string;
@@ -17,6 +17,7 @@ export interface SavedCombatant {
     Hidden: boolean;
     InterfaceVersion: string;
     NameHidden: boolean;
+    ImageURL: string;
 }
 export interface SavedTag {
     Text: string;
@@ -26,7 +27,7 @@ export interface SavedTag {
 }
 
 export interface SavedEncounter<T> extends Listable {
-    ActiveCombatantId: string;
+    ActiveCombatantId: string | null;
     RoundCounter?: number;
     Combatants: T[];
 }
@@ -39,6 +40,6 @@ export function DefaultSavedEncounter(): SavedEncounter<SavedCombatant> {
         Name: "DEFAULT_SAVED_ENCOUNTER",
         Id: probablyUniqueString(),
         Path: "",
-        Version: process.env.VERSION,
+        Version: process.env.VERSION || "0.0.0",
     };
 }

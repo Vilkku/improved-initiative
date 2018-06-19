@@ -1,4 +1,5 @@
-import { StatBlock } from "../StatBlock/StatBlock";
+import { StatBlock } from "../../common/StatBlock";
+import { AccountClient } from "../Account/AccountClient";
 import { Importer } from "./Importer";
 
 export class StatBlockImporter extends Importer {
@@ -23,6 +24,7 @@ export class StatBlockImporter extends Importer {
         let statBlock = StatBlock.Default();
 
         statBlock.Name = this.getString("name");
+        statBlock.Id = AccountClient.MakeId(statBlock.Name);
         statBlock.Type = this.getType();
         statBlock.Abilities = this.getAbilities();
 

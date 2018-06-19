@@ -1,17 +1,15 @@
 import { CombatantViewModel } from "../../Combatant/CombatantViewModel";
 import { TrackerViewModel } from "../../TrackerViewModel";
+import { Metrics } from "../../Utility/Metrics";
 import { Prompt } from "./Prompt";
 
 export class AcceptDamagePrompt implements Prompt {
     public InputSelector = ".acceptfull";
     public ComponentName = "acceptdamageprompt";
     public Prompt: string;
-    private dequeueCallback: () => void;
 
-    public SetDequeueCallback = callback => this.dequeueCallback = callback;
 
     public Resolve = (form: HTMLFormElement) => {
-        this.dequeueCallback();
     }
     public AcceptFull: () => void;
     public AcceptHalf: () => void;
@@ -22,11 +20,13 @@ export class AcceptDamagePrompt implements Prompt {
         const displayNumber = (damageAmount < 0) ? -damageAmount : damageAmount;
         this.Prompt = `Accept ${displayNumber} ${displayType} to ${combatantNames} from ${suggester}?`;
 
+        Metrics.TrackEvent("DamageSuggested", { Amount: damageAmount });
+
         this.AcceptFull = () => {
             suggestedCombatants.forEach(c => c.ApplyDamage(damageAmount.toString()));
             tracker.EventLog.LogHPChange(damageAmount, combatantNames);
             tracker.Encounter.QueueEmitEncounter();
-            this.dequeueCallback();
+            return true;
         };
 
         this.AcceptHalf = () => {
@@ -34,7 +34,7 @@ export class AcceptDamagePrompt implements Prompt {
             suggestedCombatants.forEach(c => c.ApplyDamage(halfDamage.toString()));
             tracker.EventLog.LogHPChange(halfDamage, combatantNames);
             tracker.Encounter.QueueEmitEncounter();
-            this.dequeueCallback();
+            return true;
         };
     }
 }

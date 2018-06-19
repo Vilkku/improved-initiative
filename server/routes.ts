@@ -4,15 +4,15 @@ import express = require("express");
 import session = require("express-session");
 import moment = require("moment");
 import mustacheExpress = require("mustache-express");
-import request = require("request");
 
-import { Spell } from "../client/Spell/Spell";
-import { StatBlock } from "../client/StatBlock/StatBlock";
+import { Spell } from "../common/Spell";
+import { StatBlock } from "../common/StatBlock";
 import { probablyUniqueString } from "../common/Toolbox";
 import { upsertUser } from "./dbconnection";
 import { Library } from "./library";
-import configureMetricsRoutes from "./metrics";
+import { configureMetricsRoutes } from "./metrics";
 import { configureLoginRedirect, configureLogout, startNewsUpdates } from "./patreon";
+import { PlayerViewManager } from "./playerviewmanager";
 import configureStorageRoutes from "./storageroutes";
 
 const baseUrl = process.env.BASE_URL || "";
@@ -22,8 +22,19 @@ const defaultAccountLevel = process.env.DEFAULT_ACCOUNT_LEVEL || "free";
 type Req = Express.Request & express.Request;
 type Res = Express.Response & express.Response;
 
-const pageRenderOptions = (encounterId: string, session: Express.Session) => ({
-    rootDirectory: "../../",
+interface IPageRenderOptions {
+    rootDirectory: string;
+    encounterId: string;
+    baseUrl: string;
+    patreonClientId: string;
+    isLoggedIn: boolean;
+    hasStorage: boolean;
+    hasEpicInitiative: boolean;
+    postedEncounter: string | null;
+}
+
+const pageRenderOptions = (encounterId: string, session: Express.Session) : IPageRenderOptions => ({
+    rootDirectory: "../..", 
     encounterId,
     baseUrl,
     patreonClientId,
@@ -33,13 +44,7 @@ const pageRenderOptions = (encounterId: string, session: Express.Session) => ({
     postedEncounter: null,
 });
 
-const initializeNewPlayerView = (playerViews) => {
-    const encounterId = probablyUniqueString();
-    playerViews[encounterId] = {};
-    return encounterId;
-};
-
-export default function (app: express.Application, statBlockLibrary: Library<StatBlock>, spellLibrary: Library<Spell>, playerViews) {
+export default function (app: express.Application, statBlockLibrary: Library<StatBlock>, spellLibrary: Library<Spell>, playerViews: PlayerViewManager) {
     const mustacheEngine = mustacheExpress();
     const MongoDBStore = dbSession(session);
     let store = null;
@@ -67,7 +72,7 @@ export default function (app: express.Application, statBlockLibrary: Library<Sta
     };
 
     app.use(session({
-        store: store || null,
+        store: store || undefined,
         secret: process.env.SESSION_SECRET || probablyUniqueString(),
         resave: false,
         saveUninitialized: false,
@@ -77,29 +82,36 @@ export default function (app: express.Application, statBlockLibrary: Library<Sta
     app.use(bodyParser.json());
     app.use(bodyParser.urlencoded({ extended: false }));
 
+    configureMetricsRoutes(app);
+    
     app.get("/", (req: Req, res: Res) => {
-        const renderOptions = pageRenderOptions(initializeNewPlayerView(playerViews), req.session);
+        const session = req.session;
+        if (session === undefined) {
+            throw "Session is not available";
+        }
+
+        const renderOptions = pageRenderOptions(playerViews.InitializeNew(), session);
         if (defaultAccountLevel !== "free") {
 
             if (defaultAccountLevel === "accountsync") {
-                req.session.hasStorage = true;
+                session.hasStorage = true;
             }
 
             if (defaultAccountLevel === "epicinitiative") {
-                req.session.hasStorage = true;
-                req.session.hasEpicInitiative = true;
+                session.hasStorage = true;
+                session.hasEpicInitiative = true;
             }
 
-            req.session.isLoggedIn = true;
+            session.isLoggedIn = true;
 
             if (process.env.DB_CONNECTION_STRING) {
                 upsertUser("defaultPatreonId", "accesskey", "refreshkey", "pledge")
                 .then(result => {
-                    req.session.userId = result._id;
+                    session.userId = result._id;
                     res.render("landing", renderOptions);
                 });
             } else {
-                req.session.userId = probablyUniqueString();
+                session.userId = probablyUniqueString();
                 res.render("landing", renderOptions);
             }
         } else {
@@ -108,8 +120,12 @@ export default function (app: express.Application, statBlockLibrary: Library<Sta
     });
 
     app.get("/e/:id", (req: Req, res: Res) => {
-        const session: any = req.session;
-        const options = pageRenderOptions(req.params.id, req.session);
+        const session = req.session;
+        if (session === undefined) {
+            throw "Session is not available";
+        }
+
+        const options = pageRenderOptions(req.params.id, session);
         if (session.postedEncounter) {
             options.postedEncounter = JSON.stringify(session.postedEncounter);
         }
@@ -151,15 +167,25 @@ export default function (app: express.Application, statBlockLibrary: Library<Sta
     });
 
     app.get("/p/:id", (req: Req, res: Res) => {
-        res.render("playerview", pageRenderOptions(req.params.id, req.session));
+        const session = req.session;
+        if (session == null) {
+            throw "Session is not available";
+        }
+
+        res.render("playerview", pageRenderOptions(req.params.id, session));
     });
 
     app.get("/playerviews/:id", (req: Req, res: Res) => {
-        res.json(playerViews[req.params.id]);
+        res.json(playerViews.Get(req.params.id));
     });
 
     app.get("/templates/:name", (req: Req, res: Res) => {
-        res.render(`templates/${req.params.name}`, pageRenderOptions("", req.session));
+        const session = req.session;
+        if (session == null) {
+            throw "Session is not available";
+        }
+
+        res.render(`templates/${req.params.name}`, pageRenderOptions("", session));
     });
 
     app.get(statBlockLibrary.Route(), (req: Req, res: Res) => {
@@ -179,7 +205,7 @@ export default function (app: express.Application, statBlockLibrary: Library<Sta
     });
 
     const importEncounter = (req, res: Res) => {
-        const newViewId = initializeNewPlayerView(playerViews);
+        const newViewId = playerViews.InitializeNew();
         const session = req.session;
 
         if (typeof req.body.Combatants === "string") {
@@ -197,6 +223,5 @@ export default function (app: express.Application, statBlockLibrary: Library<Sta
     configureLoginRedirect(app);
     configureLogout(app);
     configureStorageRoutes(app);
-    configureMetricsRoutes(app);
     startNewsUpdates(app);
 }
