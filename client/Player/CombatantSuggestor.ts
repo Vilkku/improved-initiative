@@ -23,7 +23,7 @@ export class CombatantSuggestor {
         this.Combatant(combatant);
         this.SuggestionVisible(true);
         $("input[name=suggestedDamage]").first().focus();
-    }
+    };
 
     public Resolve = (form: HTMLFormElement) => {
         const element = $(form).find("[name=suggestedDamage]").first();
@@ -39,7 +39,7 @@ export class CombatantSuggestor {
         $(form).find("[name=damageType]").first().prop('checked', true);
         element.val("");
         this.Close();
-    }
+    };
 
     public Close = () => {
         this.SuggestionVisible(false);

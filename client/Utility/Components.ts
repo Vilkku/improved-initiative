@@ -54,4 +54,5 @@ export let RegisterComponents = () => {
     registerComponent("tutorial", params => new TutorialViewModel(params));
     registerComponent("playersuggestion", params => params.suggestion);
     registerComponent("playerinitiativesuggestion", params => params.suggestion);
+    registerComponent("playerconditionreference", params => params.condition);
 };

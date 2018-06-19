@@ -181,7 +181,7 @@ export class CombatantCommander {
         return false;
     }
 
-    SuggestEditInitiative = (suggestedCombatants: CombatantViewModel[], suggestedInitiative: number, suggester: string) => {
+    public SuggestEditInitiative = (suggestedCombatants: CombatantViewModel[], suggestedInitiative: number, suggester: string) => {
         const allowPlayerSuggestions = CurrentSettings().PlayerView.AllowPlayerSuggestions;
 
         if (!allowPlayerSuggestions) {

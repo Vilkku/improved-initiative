@@ -35,9 +35,7 @@ export default function (io: SocketIO.Server, playerViews: PlayerViewManager) {
         });
 
         socket.on("suggest initiative", function (id, suggestedCombatantIds: string[], suggestedInitiative: number, suggester: string) {
-            if (id !== encounterId) {
-                return;
-            }
+            joinEncounter(id);
             socket.broadcast.to(encounterId).emit("suggest initiative", suggestedCombatantIds, suggestedInitiative, suggester);
         });
 

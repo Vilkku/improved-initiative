@@ -1,5 +1,6 @@
 import * as Color from "color";
 import * as ko from "knockout";
+import * as _ from "lodash";
 
 import { PlayerView } from "../common/PlayerView";
 import { PlayerViewCustomStyles, PlayerViewSettings } from "../common/PlayerViewSettings";
@@ -8,7 +9,10 @@ import { StaticCombatantViewModel } from "./Combatant/StaticCombatantViewModel";
 import { env } from "./Environment";
 import { CombatantSuggestor } from "./Player/CombatantSuggestor";
 import { InitiativeSuggestor } from "./Player/InitiativeSuggestor";
+import { ConditionReference } from "./Player/ConditionReference";
 import { TurnTimer } from "./Widgets/TurnTimer";
+import { Tag } from "./Combatant/Tag";
+import { Conditions } from "./Rules/Conditions";
 
 export interface ImageModalState {
     Visible: boolean;
@@ -33,8 +37,8 @@ export class PlayerViewModel {
     private splashPortraits = false;
 
     private encounterState: KnockoutObservable<"active" | "inactive"> = ko.observable<"active" | "inactive">("inactive");
-    private stateIcon = ko.computed(() => this.encounterState() === "active" ? "fa-play" : "fa-pause");
-    private stateTip = ko.computed(() => this.encounterState() === "active" ? "Encounter Active" : "Encounter Inactive");
+    public stateIcon = ko.computed(() => this.encounterState() === "active" ? "fa-play" : "fa-pause");
+    public stateTip = ko.computed(() => this.encounterState() === "active" ? "Encounter Active" : "Encounter Inactive");
 
     public imageModal = ko.observable<ImageModalState>({
         Visible: false,
@@ -53,6 +57,7 @@ export class PlayerViewModel {
 
     private combatantSuggestor = new CombatantSuggestor(this.socket, this.encounterId);
     private InitiativeSuggestor = new InitiativeSuggestor(this.socket, this.encounterId);
+    private ConditionReference = new ConditionReference();
 
     constructor(private socket: SocketIOClient.Socket) {
         this.socket.on("encounter updated", (encounter: SavedEncounter<StaticCombatantViewModel>) => {
@@ -106,9 +111,14 @@ export class PlayerViewModel {
     public LoadEncounter = (encounter: SavedEncounter<StaticCombatantViewModel>) => {
         this.combatants(encounter.Combatants);
         this.roundCounter(encounter.RoundCounter);
+
         if (!encounter.ActiveCombatantId) {
+            this.encounterState('inactive');
             return;
         }
+
+        this.encounterState('active');
+
         const newCombatantTurn = !this.activeCombatant() || encounter.ActiveCombatantId != this.activeCombatant().Id;
         if (newCombatantTurn) {
             this.turnTimer.Reset();
@@ -122,12 +132,6 @@ export class PlayerViewModel {
                     Timeout: setTimeout(this.CloseImageModal, 5000),
                 });
             }
-        }
-
-        if (encounter.ActiveCombatantId) {
-            this.encounterState('active');
-        } else {
-            this.encounterState('inactive');
         }
     }
 
@@ -177,6 +181,19 @@ export class PlayerViewModel {
         imageModal.BlockAutoModal = false;
         clearTimeout(imageModal.Timeout);
         this.imageModal(imageModal);
+    }
+
+    public TagHasReference = (tag: Tag) => {
+        console.log(tag);
+        const casedConditionName = _.startCase(tag.Text);
+        return Conditions[casedConditionName] !== undefined;
+    }
+
+    public ReferenceTaggedCondition = (tag: Tag) => {
+        const casedConditionName = _.startCase(tag.Text);
+        if (Conditions[casedConditionName]) {
+            this.ConditionReference.Show(tag);
+        }
     }
 }
 

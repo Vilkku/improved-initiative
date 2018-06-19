@@ -48,6 +48,18 @@
         }">
     </div>
     <!-- /ko -->
+    <!-- ko with: ConditionReference -->
+    <div class="modal-blur" data-bind="visible: ReferenceVisible, click: Close"></div>
+    <div class="damage-suggestion" data-bind="
+        visible: ReferenceVisible,
+        component: {
+            name: 'playerconditionreference',
+            params: {
+                condition: $data
+            }
+        }">
+    </div>
+    <!-- /ko -->
     <div class="combatant header">
         <div class="initiative">
             <span class="fa" data-bind="css: stateIcon, attr: { title: stateTip }"></span>
