@@ -190,9 +190,4 @@ export class CombatantViewModel {
             this.PromptUser(prompt);
         }
     }
-
-    public TagHasReference = (tag: Tag) => {
-        const casedConditionName = _.startCase(tag.Text);
-        return Conditions[casedConditionName] !== undefined;
-    }
 }

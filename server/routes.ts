@@ -160,7 +160,6 @@ export default function (app: express.Application, statBlockLibrary: Library<Sta
             ],
             "background_color": "#00643c",
             "display": "standalone",
-            "orientation": "portrait",
             "theme_color": "#0a0908",
             "start_url": "/p/" + req.params.id
         });

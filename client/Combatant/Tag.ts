@@ -3,6 +3,8 @@ import * as ko from "knockout";
 import { DurationTiming } from "../../common/DurationTiming";
 import { SavedTag } from "../../common/SavedEncounter";
 import { Combatant } from "./Combatant";
+import { Conditions } from "../Rules/Conditions";
+import * as _ from "lodash";
 
 export const StartOfTurn: DurationTiming = "StartOfTurn";
 export const EndOfTurn: DurationTiming = "EndOfTurn";
@@ -17,13 +19,17 @@ export interface Tag {
     Remove: () => void;
     Decrement: () => void;
     Increment: () => void;
+    HasReference: boolean;
 }
 
 export class Tag implements Tag {
     constructor(public Text: string, combatant: Combatant, duration = -1, public DurationTiming = StartOfTurn, public DurationCombatantId = "") {
+        const casedConditionName = _.startCase(Text);
+
         this.HasDuration = (duration > -1);
         this.DurationRemaining = ko.observable(duration);
         this.Remove = () => combatant.Tags.remove(this);
+        this.HasReference = Conditions[casedConditionName] !== undefined;
     }
 
     public Decrement = () => this.DurationRemaining(this.DurationRemaining() - 1);

@@ -183,12 +183,6 @@ export class PlayerViewModel {
         this.imageModal(imageModal);
     }
 
-    public TagHasReference = (tag: Tag) => {
-        console.log(tag);
-        const casedConditionName = _.startCase(tag.Text);
-        return Conditions[casedConditionName] !== undefined;
-    }
-
     public ReferenceTaggedCondition = (tag: Tag) => {
         const casedConditionName = _.startCase(tag.Text);
         if (Conditions[casedConditionName]) {

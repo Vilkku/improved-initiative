@@ -12,10 +12,10 @@
 </div>
 <div class="tags" data-bind="foreach: Tags">
     <div class="tag">
-        <!-- ko if: $root.TagHasReference -->
+        <!-- ko if: HasReference -->
         <span class="playerview-reference" data-bind="text: Text, click: $root.ReferenceTaggedCondition"></span>
         <!-- /ko -->
-        <!-- ko ifnot: $root.TagHasReference -->
+        <!-- ko ifnot: HasReference -->
         <span data-bind="text: Text"></span>
         <!-- /ko -->
     </div>
